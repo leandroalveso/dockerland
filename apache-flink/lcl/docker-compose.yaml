@@ -1,0 +1,39 @@
+version: "2.2"
+
+services:
+  
+  jobmanager:
+    image: flink:latest
+    restart: unless-stopped
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager   
+
+  taskmanager:
+    image: flink:latest
+    restart: unless-stopped
+    depends_on:
+      - jobmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    command: taskmanager
+  
+  sql-client:
+    image: flink:latest
+    restart: unless-stopped
+    depends_on:
+      - jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+    command: bin/sql-client.sh

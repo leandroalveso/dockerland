@@ -1,0 +1,52 @@
+# Before `docker compose up`, you should make:
+# >> docker build -f cluster.dockerfile -t cluster-base .
+# >> docker build -f spark.dockerfile -t spark-base .
+volumes:
+  lake:
+
+services:
+  
+  spark-master:
+    container_name: spark-master
+    build:
+      context: .
+      dockerfile: master.dockerfile
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - 8081:8080
+      - 7077:7077
+    volumes:
+      - ./lake:/opt/workspace
+  
+  spark-worker-1:
+    container_name: spark-worker-1
+    build:
+      context: .
+      dockerfile: worker.dockerfile
+    restart: unless-stopped
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8082:8081
+    volumes:
+      - ./lake:/opt/workspace
+  
+  spark-worker-2:
+    container_name: spark-worker-2
+    build:
+      context: .
+      dockerfile: worker.dockerfile
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8083:8082
+    volumes:
+      - ./lake:/opt/workspace

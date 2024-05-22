@@ -10,6 +10,6 @@ ARG apache_atlas_downloads_url=https://www.apache.org/dyn/closer.cgi/atlas/2.3.0
 RUN wget -O https://www.apache.org/dyn/closer.cgi/atlas/2.3.0/apache-atlas-2.3.0-sources.tar.gz -q /temp/apache-atlas-2.3.0-sources.tar.gz
 RUN mv /tmp/apache-atlas-2.3.0-sources.tar.gz .
 RUN tar -xzvf /temp/apache-atlas-2.3.0-sources.tar.gz
-# RUN rm -rf ..
+RUN rm -rf /temp/apache-atlas-2.3.0-sources.tar.gz
 
 CMD ["bash"]

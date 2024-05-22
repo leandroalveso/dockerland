@@ -1,0 +1,34 @@
+version: "3"
+
+volumes:
+  metastore:
+  warehouse:
+
+services:
+  apache-hive-server:
+    container_name: apache-hive-server
+    image: apache/hive:4.0.0
+    environment:
+      HIVE_VERSION: "4.0.0"
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf 
+    ports:
+      - 9083:9083
+    volumes:
+      - ./warehouse:/...
+    command: beeline -u 'jdbc:hive2://localhost:10000/'
+
+  apache-hive-metastore:
+    container_name: apache-hive-metastore
+    image: apache/hive:4.0.0
+    environment:
+      HIVE_VERSION: "4.0.0"
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf 
+    ports:
+      - 9083:9083
+    volumes:
+      - ./metastore:/...
+    command: beeline -u 'jdbc:hive2://localhost:10000/'

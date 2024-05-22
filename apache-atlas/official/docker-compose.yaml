@@ -1,0 +1,163 @@
+version: '3'
+
+networks:
+  atlas:
+    name: atlasnw
+
+volumes:
+  data:
+
+services:
+
+  atlas-base:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-base
+      args:
+        - UBUNTU_VERSION=${UBUNTU_VERSION}
+        - ATLAS_BASE_JAVA_VERSION=${ATLAS_BASE_JAVA_VERSION}
+    image: atlas-base
+    container_name: atlas-base
+    networks:
+      - atlas
+    environment:
+      - ATLAS_VERSION
+
+  atlas:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas
+      args:
+        - ATLAS_SERVER_JAVA_VERSION=${ATLAS_SERVER_JAVA_VERSION}
+        - ATLAS_VERSION=${ATLAS_VERSION}
+    image: atlas:latest
+    container_name: atlas
+    hostname: atlas.example.com
+    stdin_open: true
+    tty: true
+    networks:
+      - atlas
+    volumes:
+      - ./data:/home/atlas/data
+    ports:
+      - "21000:21000"
+    depends_on:
+      atlas-base:
+        condition: service_started
+      atlas-hbase:
+        condition: service_started
+      atlas-kafka:
+        condition: service_started
+      atlas-solr:
+        condition: service_started
+      atlas-zk:
+        condition: service_started
+    environment:
+      - ATLAS_SERVER_JAVA_VERSION
+      - ATLAS_VERSION
+    command:
+      - /home/atlas/scripts/atlas.sh
+
+  atlas-hbase:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-hbase
+      args:
+        - HBASE_VERSION=${HBASE_VERSION}
+        - ATLAS_VERSION=${ATLAS_VERSION}
+    image: atlas-hbase
+    container_name: atlas-hbase
+    hostname: atlas-hbase.example.com
+    stdin_open: true
+    tty: true
+    networks:
+      - atlas
+    ports:
+      - "16000:16000"
+      - "16010:16010"
+      - "16020:16020"
+      - "16030:16030"
+    depends_on:
+      atlas-hadoop:
+        condition: service_healthy
+      atlas-zk:
+        condition: service_started
+      atlas-kafka:
+        condition: service_started
+    environment:
+      - HBASE_VERSION
+      - ATLAS_VERSION
+  
+  atlas-hadoop:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-hadoop
+      args:
+        - HADOOP_VERSION=${HADOOP_VERSION}
+    image: atlas-hadoop
+    container_name: atlas-hadoop
+    hostname: atlas-hadoop.example.com
+    stdin_open: true
+    tty: true
+    networks:
+      - atlas
+    ports:
+      - "9000:9000"
+      - "8088:8088"
+    depends_on:
+      - atlas-base
+    healthcheck:
+      test: "hdfs dfs -ls /"
+      interval: 1m30s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+    environment:
+      - HADOOP_VERSION
+  
+  atlas-kafka:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-kafka
+      args:
+        - KAFKA_VERSION=${KAFKA_VERSION}
+        - ATLAS_VERSION=${ATLAS_VERSION}
+    image: atlas-kafka
+    container_name: atlas-kafka
+    hostname: atlas-kafka.example.com
+    stdin_open: true
+    tty: true
+    networks:
+      - atlas
+    ports:
+      - "9092:9092"
+    depends_on:
+      atlas-zk:
+        condition: service_started
+    environment:
+      - KAFKA_VERSION
+      - ATLAS_VERSION
+  
+  atlas-zk:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-zk
+    image: atlas-zk
+    container_name: atlas-zk
+    hostname: atlas-zk.example.com
+    networks:
+      - atlas
+    ports:
+      - "2181:2181"
+
+  atlas-solr:
+    build:
+      context: .
+      dockerfile: Dockerfile.atlas-solr
+    image: atlas-solr
+    container_name: atlas-solr
+    hostname: atlas-solr.example.com
+    networks:
+      - atlas
+    ports:
+      - "8983:8983"

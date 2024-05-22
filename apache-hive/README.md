@@ -11,6 +11,7 @@ The solutions are organized on:
 
 ## REFERENCES
 - [Apache Hive Official](https://hive.apache.org/)
+- [Apache Hive GitHub](https://github.com/apache/hive)
 
 ## COPYRIGHTS
 Copyright (c) 2024 Leandro Alves de Oliveira (engleandroalveso@gmail.com).

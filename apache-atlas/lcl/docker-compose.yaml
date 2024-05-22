@@ -1,7 +1,7 @@
-version: '3'
-
 volumes:
+  kafka:
   search:
+  zookeeper:
 
 services:
   zookeeper:
@@ -11,8 +11,8 @@ services:
       - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
-    # volumes:
-    #   - "./zookeeper:/bitnami"
+    volumes:
+      - "./zookeeper:/bitnami"
   
   kafka:
     image: docker.io/bitnami/kafka:3.6
@@ -29,8 +29,8 @@ services:
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
     ports:
       - "9093:9093"
-    # volumes:
-    #   - "./kafka:/bitnami"
+    volumes:
+      - "./kafka:/bitnami"
   
   solr:
     image: solr:latest

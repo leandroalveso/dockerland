@@ -11,6 +11,7 @@ Not yet available.
 ## REFERENCES
 - [Apache Atlas Official](https://atlas.apache.org/).
 - [Apache Atlas Installation](https://atlas.apache.org/#/Installation)
+- [Apache Atlas Docker Files](https://github.com/apache/atlas/tree/master/dev-support/atlas-docker)
 
 ## COPYRIGHTS
 Copyright (c) 2024 Leandro Alves de Oliveira (engleandroalveso@gmail.com).

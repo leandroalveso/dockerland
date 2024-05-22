@@ -9,7 +9,6 @@ volumes:
   neo4j_data:
 
 services:
-  
   neo4j:
       image: neo4j:3.5.26
       container_name: neo4j_amundsen
@@ -23,10 +22,9 @@ services:
           - 7474:7474
           - 7687:7687
       volumes:
-          - ./example/docker/neo4j/conf:/var/lib/neo4j/conf
-          - ./example/docker/neo4j/plugins:/var/lib/neo4j/plugins
-          - ./example/backup:/backup
-          - neo4j_data:/data
+          - ./neo4j/conf:/var/lib/neo4j/conf
+          - ./neo4j/plugins:/var/lib/neo4j/plugins
+          - ./neo4j_data:/data
       networks:
         - amundsennet
   
@@ -36,7 +34,7 @@ services:
       ports:
           - 9200:9200
       volumes:
-        - es_data:/usr/share/elasticsearch/data
+        - ./es_data:/usr/share/elasticsearch/data
       networks:
         - amundsennet
       ulimits:
@@ -46,7 +44,6 @@ services:
       environment:
         - discovery.type=single-node
         - xpack.security.enabled=false
-  
   
   amundsensearch:
       image: amundsendev/amundsen-search:4.0.2

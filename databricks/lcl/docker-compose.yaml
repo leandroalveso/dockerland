@@ -1,0 +1,96 @@
+version: "3.6"
+
+volumes:
+  workspace:
+  #   name: "distributed-file-system"
+  #   driver: local
+  #   driver_opts:
+  #     o: bind
+  #     type: none
+  #     device: ./
+
+services:
+  # # zookeeper:
+  # #   image: docker.io/bitnami/zookeeper:3.9
+  # #   container_name: zookeeper
+  # #   ports:
+  # #     - "2181:2181"
+  # #   volumes:
+  # #     - ./workspace:/opt/workspace
+  # #   environment:
+  # #     - ALLOW_ANONYMOUS_LOGIN=yes
+  
+  # kafka:
+  #   image: docker.io/bitnami/kafka:3.6
+  #   container_name: kafka
+  #   ports:
+  #     - "9092:9092"
+  #   environment:
+  #     - BITNAMI_DEBUG=yes
+  #     - KAFKA_BROKER_ID=1
+  #     - KAFKA_ENABLE_KRAFT=false
+  #     - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092
+  #     - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+  #     - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+  #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #   depends_on:
+  #     - zookeeper
+  
+  databricks-master:
+    container_name: databricks-master
+    restart: unless-stopped
+    build:
+      context: ./dockerfiles/
+      dockerfile: databricks-master.dockerfile
+    ports:
+      - 8080:8080
+      - 7077:7077
+    volumes:
+      - ./workspace:/opt/workspace
+  
+  databricks-worker-1:
+    container_name: databricks-worker-1
+    restart: unless-stopped
+    build:
+      context: ./dockerfiles/
+      dockerfile: databricks-worker.dockerfile
+    environment:
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8081:8080
+    volumes:
+      - ./workspace:/opt/workspace
+    depends_on:
+      - databricks-master
+  databricks-worker-2:
+    container_name: databricks-worker-2
+    restart: unless-stopped
+    build:
+      context: ./dockerfiles/
+      dockerfile: databricks-worker.dockerfile
+    environment:
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8082:8080
+    volumes:
+      - ./workspace:/opt/workspace
+    depends_on:
+      - databricks-master
+  
+  jupyterlab:
+    container_name: jupyterlab
+    restart: unless-stopped
+    build:
+      context: ./dockerfiles/
+      dockerfile: databricks-jupyterlab.dockerfile
+    ports:
+      - 8888:8888
+      - 4040:4040
+    volumes:
+      - ./workspace:/opt/workspace
+    depends_on:
+      - databricks-worker-2

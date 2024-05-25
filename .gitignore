@@ -1,2 +1,31 @@
-build
+# volumes-container
+airflowdb/
+broker/
+cache/
+data/
+db/
+engine/
+inbound/
+lake/
+lakehouse/
+postgres/
+redis/
+warehouse/
+
+# rust
+build/
 dist/
+temp/
+
+# node.js
+node_packages/
+node_modules/
+
+# python
+__pycache__/
+
+# local-environment
+.env
+env/
+venv
+.venv/

@@ -1,4 +1,4 @@
-FROM spark-base
+FROM spark:latest
 
 ARG spark_worker_web_ui=8081
 

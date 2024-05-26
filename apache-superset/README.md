@@ -1,6 +1,6 @@
 # APACHE SUPERSET
 
-**Apache Superset** is the popular, blazing-fast, open source enterprise search platform built on Apache Lucene.
+**Apache Superset** is an open-source modern data exploration and visualization platform..
 
 ## GETTING STARTED
 

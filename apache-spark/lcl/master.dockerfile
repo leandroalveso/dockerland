@@ -1,4 +1,4 @@
-FROM spark-base
+FROM spark:latest
 
 ARG spark_master_web_ui=8080
 

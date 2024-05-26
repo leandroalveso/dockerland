@@ -8,8 +8,8 @@ This is based on the official solution provide by **Apache Hudi**. Check [here](
 
 ## REFERENCES
 - [Apache Hudi Official](https://hudi.apache.org/).
+- [Apache Hudi at GitHub](https://github.com/apache/hudi).
 - [Apache Hudi Official Docs](https://hudi.apache.org/docs/overview).
-- [Apache Hudi Docker](https://hudi.apache.org/docs/docker_demo).
 
 ## COPYRIGHTS
 Copyright (c) 2024 Leandro Alves de Oliveira (engleandroalveso@gmail.com).

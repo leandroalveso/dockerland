@@ -8,8 +8,6 @@ engine/
 inbound/
 lake/
 lakehouse/
-postgres/
-redis/
 warehouse/
 
 # rust

@@ -11,6 +11,7 @@ The solutions are organized on:
 
 ## REFERENCES
 - [Apache Spark Official](https://spark.apache.org/)
+- [Apache Spark Docker Hub](https://hub.docker.com/_/spark)
 - [Apache Spark Deployment Docs](https://spark.apache.org/docs/latest/submitting-applications.html)
 
 ## COPYRIGHTS

@@ -1,27 +1,35 @@
-version: "3.6"
+# before `docker compose up`, you have to build:
+# >> docker build -f ./dockerfiles/databricks-base.dockerfile -t databricks-base .
+# >> docker build -f ./dockerfiles/databricks.dockerfile -t databricks .
+# >> docker build -f ./dockerfiles/databricks-master.dockerfile -t databricks-master .
+# >> docker build -f ./dockerfiles/databricks-worker.dockerfile -t databricks-worker .
+# >> docker build -f ./dockerfiles/databricks-jupyterlab.dockerfile -t databricks-jupyterlab .
+
+version: "3"
+
+networks:
+  databricks:
+  mlflowdb:
 
 volumes:
-  workspace:
-  #   name: "distributed-file-system"
-  #   driver: local
-  #   driver_opts:
-  #     o: bind
-  #     type: none
-  #     device: ./
+  shared-workspace:
 
 services:
-  # # zookeeper:
-  # #   image: docker.io/bitnami/zookeeper:3.9
-  # #   container_name: zookeeper
-  # #   ports:
-  # #     - "2181:2181"
-  # #   volumes:
-  # #     - ./workspace:/opt/workspace
-  # #   environment:
-  # #     - ALLOW_ANONYMOUS_LOGIN=yes
+
+  # zookeeper:
+  #   image: docker.io/bitnami/zookeeper:3.9.2
+  #   container_name: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   networks:
+  #     - databricks
+  #   volumes:
+  #     - ./shared-workspace:/opt/workspace
+  #   environment:
+  #     - ALLOW_ANONYMOUS_LOGIN=yes
   
   # kafka:
-  #   image: docker.io/bitnami/kafka:3.6
+  #   image: docker.io/bitnami/kafka:3.7.0
   #   container_name: kafka
   #   ports:
   #     - "9092:9092"
@@ -35,62 +43,101 @@ services:
   #     - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
   #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
   #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #   networks:
+  #     - databricks
   #   depends_on:
   #     - zookeeper
   
+  # jupyterlab:
+  #   container_name: jupyterlab
+  #   image: databricks-jupyterlab:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8888:8888
+  #     - 4040:4040
+  #   networks:
+  #     - databricks
+  #   volumes:
+  #     - ./shared-workspace:/opt/workspace
+  #   depends_on:
+  #     - databricks-worker-1
+  
+  mlflowdb: # https://hub.docker.com/_/postgres
+    image: postgres:16.3-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mlflow-admin
+      POSTGRES_PASSWORD: mlflow*54321
+      POSTGRES_DB: mlflowdb
+      POSTRGRES_HOSTNAME: mlflowdb
+      POSTGRES_PORT: 5433
+    ports:
+      - 5433:5432
+    volumes:
+      - ./mlflowdb:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mlflow-admin", "mlflowdb"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  
+  databricks-mlflow:
+    image: databricks-mlflow:latest
+    container_name: databricks-mlflow
+    restart: unless-stopped
+    depends_on:
+      - mlflowdb
+    environment:
+      MLFLOW_USERNAME: mlflow-admin
+      MLFLOW_PASSWORD: mlflow*54321
+      MLFLOW_DB: mlflow
+      MLFLOW_HOSTNAME: mlflowdb
+      MLFLOW_PORT: 5433
+    ports:
+      - 5000:5000
+    volumes:
+      - ./shared-workspace:/mlflow
+  
   databricks-master:
+    image: databricks-master:latest
     container_name: databricks-master
     restart: unless-stopped
-    build:
-      context: ./dockerfiles/
-      dockerfile: databricks-master.dockerfile
     ports:
       - 8080:8080
       - 7077:7077
+    networks:
+      - databricks
     volumes:
-      - ./workspace:/opt/workspace
+      - ./shared-workspace:/opt/workspace
   
   databricks-worker-1:
+    image: databricks-worker:latest
     container_name: databricks-worker-1
     restart: unless-stopped
-    build:
-      context: ./dockerfiles/
-      dockerfile: databricks-worker.dockerfile
-    environment:
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=512m
-    ports:
-      - 8081:8080
-    volumes:
-      - ./workspace:/opt/workspace
     depends_on:
       - databricks-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8081:8081
+    networks:
+      - databricks
+    volumes:
+      - ./shared-workspace:/opt/workspace
+  
   databricks-worker-2:
+    image: databricks-worker:latest
     container_name: databricks-worker-2
     restart: unless-stopped
-    build:
-      context: ./dockerfiles/
-      dockerfile: databricks-worker.dockerfile
-    environment:
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=512m
-    ports:
-      - 8082:8080
-    volumes:
-      - ./workspace:/opt/workspace
     depends_on:
       - databricks-master
-  
-  jupyterlab:
-    container_name: jupyterlab
-    restart: unless-stopped
-    build:
-      context: ./dockerfiles/
-      dockerfile: databricks-jupyterlab.dockerfile
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
     ports:
-      - 8888:8888
-      - 4040:4040
+      - 8082:8081
+    networks:
+      - databricks
     volumes:
-      - ./workspace:/opt/workspace
-    depends_on:
-      - databricks-worker-2
+      - ./shared-workspace:/opt/workspace

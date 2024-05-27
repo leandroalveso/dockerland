@@ -5,9 +5,7 @@ FROM databricks:latest
 
 # -- Layer: Image Metadata
 
-ARG build_date
-
-ENV build_date="$(date -u +'%Y-%m-%d')"
+ARG build_date="$(date -u +'%Y-%m-%d')"
 
 LABEL org.label-schema.build-date=${build_date}
 LABEL org.label-schema.description="Spark master image"

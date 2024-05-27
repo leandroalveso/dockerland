@@ -10,33 +10,33 @@ volumes:
       device: ./
 
 services:
-  # zookeeper:
-  #   image: docker.io/bitnami/zookeeper:3.8.2
-  #   container_name: zookeeper
-  #   ports:
-  #     - "2181:2181"
-  #   volumes:
-  #     - shared-workspace:/opt/workspace
-  #   environment:
-  #     - ALLOW_ANONYMOUS_LOGIN=yes
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8.2
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    volumes:
+      - shared-workspace:/opt/workspace
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
   
-  # kafka:
-  #   image: docker.io/bitnami/kafka:3.5.1
-  #   container_name: kafka
-  #   ports:
-  #     - "9092:9092"
-  #   environment:
-  #     - BITNAMI_DEBUG=yes
-  #     - KAFKA_BROKER_ID=1
-  #     - KAFKA_ENABLE_KRAFT=false
-  #     - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092
-  #     - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-  #     - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
-  #     - ALLOW_PLAINTEXT_LISTENER=yes
-  #   depends_on:
-  #     - zookeeper
+  kafka:
+    image: docker.io/bitnami/kafka:3.5.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - BITNAMI_DEBUG=yes
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ENABLE_KRAFT=false
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
   
   jupyterlab:
     image: jupyterlab:latest
@@ -68,6 +68,7 @@ services:
       - ./shared-workspace:/opt/workspace
     depends_on:
       - spark-master
+  
   spark-worker-2:
     image: spark-worker:latest
     container_name: spark-worker-2

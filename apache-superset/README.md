@@ -1,6 +1,6 @@
 # APACHE SUPERSET
 
-**Apache Superset** is an open-source modern data exploration and visualization platform..
+**Apache Superset** is an open-source modern data exploration and visualization platform.
 
 ## GETTING STARTED
 

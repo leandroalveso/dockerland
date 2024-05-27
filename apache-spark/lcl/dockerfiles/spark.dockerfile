@@ -1,37 +1,23 @@
-ARG debian_buster_image_tag=11-jre-slim
-
-FROM openjdk:${debian_buster_image_tag} AS spark-base
-
-# -- Layer: OS + Python 3.11
-
-ARG shared_workspace=/opt/workspace
-
-RUN mkdir -p ${shared_workspace} \
-    && apt-get update -y \
-    && apt-get install -y python3 \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV SHARED_WORKSPACE=${shared_workspace}
-
-# -- Runtime
-
-VOLUME ${shared_workspace}
-CMD ["bash"]
-
-FROM spark-base
+FROM spark-base AS spark
 
 # -- Layer: Apache Spark
 
-ARG spark_version="3.4.0"
+ARG spark_version="3.4.3"
 ARG hadoop_version="3"
+ARG build_date="$(date -u +'%Y-%m-%d')"
+
+LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.name="Apache Spark"
+LABEL org.label-schema.description="Apache Spark image"
+
+# -- Layer: Apache Spark
 
 ENV SPARK_HOME /usr/bin/spark-${spark_version}-bin-hadoop${hadoop_version}
 ENV SPARK_MASTER_HOST spark-master
 ENV SPARK_MASTER_PORT 7077
 ENV PYSPARK_PYTHON python3
 
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl unzip
 
 RUN curl https://archive.apache.org/dist/spark/spark-${spark_version}/spark-${spark_version}-bin-hadoop${hadoop_version}.tgz -o spark.tgz
 RUN tar -xf spark.tgz

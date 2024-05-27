@@ -13,6 +13,9 @@ The solutions are organized on:
 - [Databricks Official](https://www.databricks.com/).
 - [Apache Spark Official](https://spark.apache.org/)
 - [Apache Delta Lake Official](https://delta.io/)
+- [MLFlow](https://mlflow.org/)
+- [Tensorflow](https://www.tensorflow.org/)
+- [PyTorch](https://pytorch.org/)
 - [Databricks Cookbook](https://github.com/PacktPublishing/Data-Engineering-with-Databricks-Cookbook/)
 
 ## COPYRIGHTS

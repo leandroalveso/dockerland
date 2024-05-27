@@ -16,10 +16,12 @@ A collection of Docker/Podman/Packer, Docker-Compose and Kubernetes configuratio
 - **Apache Pulsar** is an open-source, distributed messaging and streaming platform built for the cloud.
 - **Apache Solr** is the popular, blazing-fast, open source enterprise search platform built on Apache Lucene.
 - **Apache Spark** is a multi-language engine for executing data engineering, data science, and machine learning on single-node machines or clusters.
-- **Apache Superset** is an open-source modern data exploration and visualization platform..
+- **Apache Superset** is an open-source modern data exploration and visualization platform.
 - **Databricks** is a global data, analytics and artificial intelligence company founded by the original creators of Apache Spark. The company provides a cloud-based platform to help enterprises build, scale, and govern data and AI, including generative AI and other machine learning models.
+- **Delta-Lake** is an open-source storage framework that enables building a format agnostic Lakehouse architecture with compute engines including Spark, PrestoDB, Flink, Trino, Hive, Snowflake, Google BigQuery, Athena, Redshift, Databricks, Azure Fabric and APIs for Scala, Java, Rust, and Python.
 - **Kong** is the world’s most adopted API gateway. Lightweight, fast, and flexible, this open source gateway is built for hybrid and multi-cloud and optimized for microservices and distributed architectures.
 - **MinIO**  is a high-performance, S3 compatible object store. It is built for large scale AI/ML, data lake and database workloads. It is software-defined and runs on any cloud or on-premises infrastructure. MinIO is dual-licensed under open source GNU AGPL v3 and a commercial enterprise license.
+- **MLFlow** is a platform to streamline machine learning development, including tracking experiments, packaging code into reproducible runs, and sharing and deploying models. MLflow offers a set of lightweight APIs that can be used with any existing machine learning application or library (TensorFlow, PyTorch, XGBoost, etc), wherever you currently run ML code (e.g. in notebooks, standalone applications or the cloud).
 - **MongoDB** is a source-available, cross-platform, document-oriented database program. Classified as a NoSQL database product, MongoDB utilizes JSON-like documents with optional schemas.
 - **Neoj4** is a graph database management system developed by Neo4j, Inc. The data elements Neo4j stores are nodes, edges connecting them, and attributes of nodes and edges.
 - **PostgreSQL** is a powerful, open source object-relational database system with over 35 years of active development that has earned it a strong reputation for reliability, feature robustness, and performance.

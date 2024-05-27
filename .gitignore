@@ -1,4 +1,5 @@
 # volumes-container
+backup/
 airflowdb/
 broker/
 cache/

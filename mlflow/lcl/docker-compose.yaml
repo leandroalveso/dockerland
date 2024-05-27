@@ -1,0 +1,56 @@
+# before `docker compose up`, you have to build:
+# >> docker build -f ./mlflow.dockerfile -t mlflow:latest .
+
+version: "3"
+
+networks:
+  mlflow:
+
+volumes:
+  mlflow:
+  mlflowdb:
+
+services:
+
+  mlflowdb: # https://hub.docker.com/_/postgres
+    image: postgres:16.3-alpine
+    container_name: mlflowdb
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${MLFLOW_USER}
+      - POSTGRES_PASSWORD=${MLFLOW_SECRET}
+      - POSTGRES_DB=${MLFLOW_DB}
+    ports:
+      - 5432:5432
+    networks:
+      - mlflow
+    volumes:
+      - ./mlflowdb:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${MLFLOW_USER}", "${MLFLOW_DB}"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow.dockerfile
+    container_name: mlflow
+    restart: unless-stopped
+    depends_on:
+      - mlflowdb
+    env_file: .env
+    environment:
+      - MLFLOW_USER=mlflow-admin
+      - MLFLOW_SECRET=mlflow*54321
+      - MLFLOW_DB=mlflow
+      - MLFLOW_HOSTNAME=mlflowdb
+      - MLFLOW_PORT=5432
+    ports:
+      - 5000:5000
+    networks:
+      - mlflow
+    volumes:
+      - ./mlflow:/mlflow

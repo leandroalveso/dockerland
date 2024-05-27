@@ -1,18 +1,19 @@
-ARG java_image_tag=21-jre
+ARG JAVA_IMAGE_TAG=21-jre
 
-FROM eclipse-temurin:${java_image_tag} AS databricks-base
+FROM eclipse-temurin:${JAVA_IMAGE_TAG} AS databricks-base
 
 # -- Layer: Image Metadata
 
-ARG build_date="$(date -u +'%Y-%m-%d')"
-ARG delta_spark_version="3.2.0"
-ARG deltalake_version="0.17.4"
+ENV BUILD_DATE="$(date -u +'%Y-%m-%d')"
 
-LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.build-date=${BUILD_DATE}
 LABEL org.label-schema.description="Databricks-cluster base image"
 LABEL org.label-schema.schema-version="1.0"
 
 # -- Layer: OS + Python + Scala
+
+ENV DELTA_SPARK_VERSION="3.2.0"
+ENV DELTALAKE_VERSION="0.17.4"
 
 ARG shared_workspace=/opt/workspace
 
@@ -30,7 +31,8 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/*
 
 # We are explicitly pinning the versions of various libraries which this Docker image runs on.
-RUN pip3 install --quiet --no-cache-dir delta-spark deltalake
+RUN pip3 install --quiet --no-cache-dir \
+    delta-spark==${DELTA_SPARK_VERSION} deltalake==${DELTALAKE_VERSION}
 
 ENV SCALA_HOME="/usr/bin/scala"
 ENV PATH=${PATH}:${SCALA_HOME}/bin

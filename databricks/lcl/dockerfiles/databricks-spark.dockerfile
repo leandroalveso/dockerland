@@ -2,36 +2,35 @@ FROM databricks-base
 
 # -- Layer: Image Metadata
 
-ARG build_date
+ARG BUILD_DATE
 ARG delta_package_version
 ARG spark_xml_package_version
 
-ENV build_date="$(date -u +'%Y-%m-%d')"
+ENV BUILD_DTA="$(date -u +'%Y-%m-%d')"
 ENV delta_package_version="delta-core_2.12:2.4.0"
 ENV spark_xml_package_version="spark-xml_2.12:0.18.0"
 
-LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.build-date=${BUILD_DATE}
 LABEL org.label-schema.description="Spark base image"
 LABEL org.label-schema.schema-version="1.0"
 
 # -- Layer: Apache Spark
 ARG spark_version
 ARG spark_version_major
-ARG hadoop_version
 
 ENV spark_version="3.4.1"
 ENV spark_version_major="3.4"
-ENV hadoop_version="3"
+ENV HADOOP_VERSION="3"
 
-RUN curl https://archive.apache.org/dist/spark/spark-${spark_version}/spark-${spark_version}-bin-hadoop${hadoop_version}.tgz -o spark.tgz \
+RUN curl https://archive.apache.org/dist/spark/spark-${spark_version}/spark-${spark_version}-bin-hadoop${HADOOP_VERSION}.tgz -o spark.tgz \
     && tar -xf spark.tgz \
-    && mv spark-${spark_version}-bin-hadoop${hadoop_version} /usr/bin/ \
-    && echo "alias pyspark=/usr/bin/spark-${spark_version}-bin-hadoop${hadoop_version}/bin/pyspark" >> ~/.bashrc \
-    && echo "alias spark-shell=/usr/bin/spark-${spark_version}-bin-hadoop${hadoop_version}/bin/spark-shell" >> ~/.bashrc \
-    && mkdir /usr/bin/spark-${spark_version}-bin-hadoop${hadoop_version}/logs \
+    && mv spark-${spark_version}-bin-hadoop${HADOOP_VERSION} /usr/bin/ \
+    && echo "alias pyspark=/usr/bin/spark-${spark_version}-bin-hadoop${HADOOP_VERSION}/bin/pyspark" >> ~/.bashrc \
+    && echo "alias spark-shell=/usr/bin/spark-${spark_version}-bin-hadoop${HADOOP_VERSION}/bin/spark-shell" >> ~/.bashrc \
+    && mkdir /usr/bin/spark-${spark_version}-bin-hadoop${HADOOP_VERSION}/logs \
     && rm spark.tgz
 
-ENV SPARK_HOME /usr/bin/spark-${spark_version}-bin-hadoop${hadoop_version}
+ENV SPARK_HOME /usr/bin/spark-${spark_version}-bin-hadoop${HADOOP_VERSION}
 ENV SPARK_MASTER_HOST spark-master
 ENV SPARK_MASTER_PORT 7077
 ENV PYSPARK_PYTHON python3

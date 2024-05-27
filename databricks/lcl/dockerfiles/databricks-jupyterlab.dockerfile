@@ -2,9 +2,9 @@ FROM databricks-base:latest
 
 # -- Layer: Image Metadata
 
-ARG build_date="$(date -u +'%Y-%m-%d')"
+ENV BUILD_DATE="$(date -u +'%Y-%m-%d')"
 
-LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.build-date=${BUILD_DATE}
 LABEL org.label-schema.name="JupyterLab"
 LABEL org.label-schema.description="JupyterLab image"
 

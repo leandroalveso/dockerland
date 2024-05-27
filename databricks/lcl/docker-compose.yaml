@@ -9,10 +9,10 @@ version: "3"
 
 networks:
   databricks:
-  mlflow:
-  mlflowdb:
 
 volumes:
+  mlflow:
+  mlflowdb:
   shared-workspace:
 
 services:

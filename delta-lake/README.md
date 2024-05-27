@@ -4,7 +4,7 @@
 
 ## GETTING STARTED
 
-This is based on the official solution provide by **Delta-Lake**.
+This is based on the official solution provided by **Delta-Lake**.
 
 ## REFERENCES
 - [Delta.io Official](https://delta.io/).

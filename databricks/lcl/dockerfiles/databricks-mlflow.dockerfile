@@ -1,5 +1,11 @@
 FROM python:3.11-slim
 
+ENV BUILD_DATE="$(date -u +'%Y-%m-%d')"
+
+LABEL org.label-schema.build-date=${BUILD_DATE}
+LABEL org.label-schema.description="Databricks MLFlow image"
+LABEL org.label-schema.schema-version="1.0"
+
 #-- update-image
 
 RUN apt-get -y update \
@@ -13,20 +19,29 @@ RUN apt-get update \
 
 #-- create a usergroup and user
 
-RUN groupadd mlflow && useradd --create-home -g mlflow "${MLFLOW_USER}"
-ENV PATH /home/"${MLFLOW_USER}"/.local/bin:${PATH}
+# RUN groupadd mlflow && useradd --create-home -g mlflow "${MLFLOW_USER}"
+# ENV PATH /home/"${MLFLOW_USER}"/.local/bin:${PATH}
 
-WORKDIR /home/"${MLFLOW_USER}"/mlflow
-USER "${MLFLOW_USER}"
+# WORKDIR /home/"${MLFLOW_USER}"/mlflow
+# USER "${MLFLOW_USER}"
 
-#-- install-MLflow
+WORKDIR /mlflow
+
+#-- Install-MLflow
 
 RUN pip install --no-cache-dir \
     psycopg2-binary \
     mlflow mlflow-vizmod bigmlflow
 
-#ENV BACKEND_STORE_URI sqlite:///mlflow.db
-ENV BACKEND_STORE_URI postgresql+psycopg2://$MLFLOW_USER:$MLFLOW_SECRET@$MLFLOW_HOSTNAME:$MLFLOW_PORT/$MLFLOW_DB
+# ENV MLFLOW_USER="$MLFLOW_USER"
+# ENV MLFLOW_SECRET="${MLFLOW_SECRET}"
+# ENV MLFLOW_HOSTNAME="${MLFLOW_HOSTNAME}"
+# ENV MLFLOW_PORT="${MLFLOW_PORT}"
+# ENV MLFLOW_DB="${MLFLOW_DB}"
+
+# ENV BACKEND_STORE_URI sqlite:///mlflow.db
+
+ENV BACKEND_STORE_URI "postgresql+psycopg2://mlflow-admin:mlflow*54321@mlflowdb:5432/mlflow"
 
 EXPOSE 5000
 

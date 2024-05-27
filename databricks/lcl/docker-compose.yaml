@@ -9,13 +9,13 @@ version: "3"
 
 networks:
   databricks:
+  mlflow:
   mlflowdb:
 
 volumes:
   shared-workspace:
 
 services:
-
   # zookeeper:
   #   image: docker.io/bitnami/zookeeper:3.9.2
   #   container_name: zookeeper
@@ -62,41 +62,47 @@ services:
   #   depends_on:
   #     - databricks-worker-1
   
-  mlflowdb: # https://hub.docker.com/_/postgres
-    image: postgres:16.3-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: mlflow-admin
-      POSTGRES_PASSWORD: mlflow*54321
-      POSTGRES_DB: mlflowdb
-      POSTRGRES_HOSTNAME: mlflowdb
-      POSTGRES_PORT: 5433
-    ports:
-      - 5433:5432
-    volumes:
-      - ./mlflowdb:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "mlflow-admin", "mlflowdb"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
+  # mlflowdb: # https://hub.docker.com/_/postgres
+  #   image: postgres:16.3-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: mlflow-admin
+  #     POSTGRES_PASSWORD: mlflow*54321
+  #     POSTGRES_DB: mlflow
+  #     # POSTRGRES_HOSTNAME: mlflowdb
+  #     # POSTGRES_PORT: 5432
+  #   ports:
+  #     - 5433:5432
+  #   networks:
+  #     - databricks
+  #   volumes:
+  #     - ./mlflowdb:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD", "pg_isready", "-U", "mlflow-admin", "mlflowdb"]
+  #     interval: 30s
+  #     timeout: 30s
+  #     retries: 3
   
-  databricks-mlflow:
-    image: databricks-mlflow:latest
-    container_name: databricks-mlflow
-    restart: unless-stopped
-    depends_on:
-      - mlflowdb
-    environment:
-      MLFLOW_USERNAME: mlflow-admin
-      MLFLOW_PASSWORD: mlflow*54321
-      MLFLOW_DB: mlflow
-      MLFLOW_HOSTNAME: mlflowdb
-      MLFLOW_PORT: 5433
-    ports:
-      - 5000:5000
-    volumes:
-      - ./shared-workspace:/mlflow
+  # databricks-mlflow:
+  #   build: # image: databricks-mlflow:latest
+  #     context: .
+  #     dockerfile: ./dockerfiles/databricks-mlflow.dockerfile
+  #   container_name: databricks-mlflow
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mlflowdb
+  #   environment:
+  #     MLFLOW_USERNAME: mlflow-admin
+  #     MLFLOW_PASSWORD: mlflow*54321
+  #     MLFLOW_DB: mlflow
+  #     MLFLOW_HOSTNAME: mlflowdb
+  #     MLFLOW_PORT: 5432
+  #   ports:
+  #     - 5000:5000
+  #   networks:
+  #     - databricks
+  #   volumes:
+  #     - ./mlflow:/mlflow
   
   databricks-master:
     image: databricks-master:latest

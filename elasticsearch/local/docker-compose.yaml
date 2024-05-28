@@ -1,0 +1,21 @@
+version: '3'
+
+networks:
+  - elasticsearch
+
+volumes:
+  es_data:
+
+services:
+  elasticsearch: # https://hub.docker.com/_/elasticsearch
+    image: elasticsearch:8.13.4
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - elasticsearch
+    volumes:
+      - ./es_data:/usr/share/elasticsearch/data/
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false

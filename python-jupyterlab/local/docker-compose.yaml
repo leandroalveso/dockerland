@@ -1,0 +1,21 @@
+version: "3.6"
+
+volumes:
+  shared-workspace:
+    name: "distributed-file-system"
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./
+
+services:
+  
+  jupyterlab:
+    image: python-jupyterlab:latest
+    container_name: jupyterlab
+    ports:
+      - 8888:8888
+      - 4040:4040
+    volumes:
+      - ./shared-workspace:/opt/workspace

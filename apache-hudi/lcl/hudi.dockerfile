@@ -1,11 +1,12 @@
 ARG java_image_tag=17-jre
-ARG build_date="$(date -u +'%Y-%m-%d')"
-ARG delta_spark_version="3.2.0"
-ARG deltalake_version="0.17.4"
 
 FROM eclipse-temurin:${java_image_tag} AS hudi-base
 
 # -- Layer: Image Metadata
+
+ARG build_date="$(date -u +'%Y-%m-%d')"
+ARG delta_spark_version="3.2.0"
+ARG deltalake_version="0.17.4"
 
 LABEL org.label-schema.build-date=${build_date}
 LABEL org.label-schema.description="Cluster base image"
@@ -108,4 +109,4 @@ RUN ${SPARK_HOME}/bin/spark-shell --packages org.apache.hudi:hudi-spark${spark_m
         --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog" \
     && ${SPARK_HOME}/bin/spark-shell --packages com.databricks:${spark_xml_package_version} \
     && ${SPARK_HOME}/bin/spark-shell --packages org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1
-    # && ${SPARK_HOME}/bin/spark-shell --packages io.delta:${delta_hudi}
+    && ${SPARK_HOME}/bin/spark-shell --packages io.delta:${delta_hudi}

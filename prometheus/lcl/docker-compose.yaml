@@ -1,0 +1,18 @@
+version: '3'
+
+networks:
+  prometheus:
+
+services:
+  prometheus:
+    image: ubuntu/prometheus:2.50.0-22.04_stable
+    container_name: prometheus
+    environment:
+      - TZ=UTC
+    ports:
+      - 9090:9090
+    networks:
+      - prometheus
+    # volumes:
+    #   - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    #   - ./config/alerts.yml:/etc/prometheus/alerts.yml

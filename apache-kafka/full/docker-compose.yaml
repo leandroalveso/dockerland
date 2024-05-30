@@ -1,9 +1,11 @@
+# https://github.com/conduktor/kafka-stack-docker-compose
+
 version: '2'
 
 services:
 
   zookeeper1:
-    image: confluentinc/cp-zookeeper:7.3.2
+    image: confluentinc/cp-zookeeper:7.6.1
     hostname: zookeeper1
     container_name: zookeeper1
     ports:
@@ -11,10 +13,10 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_SERVERS: zookeeper1:2888:3888
+      ZOOKEEPER_SERVERS: zookeeper1:2888:3888;zookeeper2:2888:3888
     
   zookeeper2:
-    image: confluentinc/cp-zookeeper:7.3.2
+    image: confluentinc/cp-zookeeper:7.6.1
     hostname: zookeeper2
     container_name: zookeeper2
     ports:
@@ -22,16 +24,15 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2182
       ZOOKEEPER_SERVER_ID: 2
-      ZOOKEEPER_SERVERS: zookeeper1:2888:3888;zookeeper2:2888:3888;zoo3:2888:3888
+      ZOOKEEPER_SERVERS: zookeeper1:2888:3888;zookeeper2:2888:3888
 
   kafka1:
-    image: confluentinc/cp-kafka:7.3.2
+    image: confluentinc/cp-kafka:7.6.1
     hostname: kafka1
     container_name: kafka1
     ports:
       - "9092:9092"
       - "29092:29092"
-      - "9999:9999"
     environment:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092,DOCKER://host.docker.internal:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
@@ -50,7 +51,7 @@ services:
       - zookeeper1
   
   kafka2:
-    image: confluentinc/cp-kafka:7.3.2
+    image: confluentinc/cp-kafka:7.6.1
     hostname: kafka2
     container_name: kafka2
     ports:
@@ -75,7 +76,7 @@ services:
       - zookeeper2
 
   kafka3:
-    image: confluentinc/cp-kafka:7.3.2
+    image: confluentinc/cp-kafka:7.6.1
     hostname: kafka3
     container_name: kafka3
     ports:
@@ -100,24 +101,24 @@ services:
       - zookeeper2
 
   kafka-schema-registry:
-    image: confluentinc/cp-schema-registry:7.3.2
+    image: confluentinc/cp-schema-registry:7.6.1
     hostname: kafka-schema-registry
     container_name: kafka-schema-registry
-    ports:
-      - "8081:8081"
-    environment:
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:19092
-      SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     depends_on:
       - zookeeper1
       - zookeeper2
       - kafka1
       - kafka2
       - kafka3
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'PLAINTEXT://kafka1:19092,PLAINTEXT://kafka2:19093,PLAINTEXT://kafka3:19094'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
   
   kafka-rest-proxy:
-    image: confluentinc/cp-kafka-rest:7.3.2
+    image: confluentinc/cp-kafka-rest:7.6.1
     hostname: kafka-rest-proxy
     container_name: kafka-rest-proxy
     ports:
@@ -127,7 +128,7 @@ services:
       KAFKA_REST_LISTENERS: http://0.0.0.0:8082/
       KAFKA_REST_SCHEMA_REGISTRY_URL: http://kafka-schema-registry:8081/
       KAFKA_REST_HOST_NAME: kafka-rest-proxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:19092
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:19092,PLAINTEXT://kafka2:19093,PLAINTEXT://kafka3:19094
     depends_on:
       - zookeeper1
       - zookeeper2
@@ -137,7 +138,7 @@ services:
       - kafka-schema-registry
   
   kafka-connect:
-    image: confluentinc/cp-kafka-connect:7.3.2
+    image: confluentinc/cp-kafka-connect:7.6.1
     hostname: kafka-connect
     container_name: kafka-connect
     ports:
@@ -180,7 +181,7 @@ services:
         /etc/confluent/docker/run
   
   ksqldb-server:
-    image: confluentinc/cp-ksqldb-server:7.3.2
+    image: confluentinc/cp-ksqldb-server:7.6.1
     hostname: ksqldb-server
     container_name: ksqldb-server
     ports:

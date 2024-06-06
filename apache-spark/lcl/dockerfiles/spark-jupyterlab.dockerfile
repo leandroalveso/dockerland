@@ -2,28 +2,30 @@ FROM spark-base:latest
 
 # -- Layer: Image Metadata
 
-ARG build_date="$(date -u +'%Y-%m-%d')"
+ARG BUILD_DATE="$(date -u +'%Y-%m-%d')"
+ARG SPARK_VERSION="3.4.1"
+ARG JUPYTERLAB_VERSION="4.2.1"
+ARG SPARKSQL_MAGIC_VERSION="0.0.3"
 
-LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.build-date=${BUILD_DATE}
 LABEL org.label-schema.name="JupyterLab for Apache Spark"
 LABEL org.label-schema.description="JupyterLab image"
 
-# -- Layer: Notebooks and data
-
 # -- Layer: JupyterLab + Python kernel for PySpark
 
-ARG spark_version="3.4.1"
-ARG jupyterlab_version="4.2.1"
-ARG sparksql_magic_version="0.0.3"
-
 RUN pip3 install --no-cache-dir \
-    jupyterlab==${jupyterlab_version} \
-    pyspark==${spark_version} \
-    sparksql-magic==${sparksql_magic_version} \
-    requests numpy pandas polars scipy statsmodels scikit-learn tensorflow
+    jupyterlab==${JUPYTERLAB_VERSION} \
+    pyspark==${SPARK_VERSION} \
+    sparksql-magic==${SPARKSQL_MAGIC_VERSION}
+
+COPY ./dockerfiles/requirements.txt requirements.txt
+
+RUN pip3 install -r requirements.txt
 
 EXPOSE 8888
 
 WORKDIR ${SHARED_WORKSPACE}
+
+# -- Layer: Runtime
 
 CMD jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=;python

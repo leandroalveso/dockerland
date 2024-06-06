@@ -1,15 +1,17 @@
-ARG image_tag=11-jre-slim
+ARG BASE_IMAGE_TAG=11-jre-slim
 
-FROM openjdk:${image_tag} as spark-base
+FROM openjdk:${BASE_IMAGE_TAG} as spark-base
 
-# -- Layer: OS + Python 3
+# -- Layer: Image Metadata
 
 ARG shared_workspace=/opt/workspace
-ARG build_date="$(date -u +'%Y-%m-%d')"
+ARG BUILD_DATE="$(date -u +'%Y-%m-%d')"
 
-LABEL org.label-schema.build-date=${build_date}
+LABEL org.label-schema.build-date=${BUILD_DATE}
 LABEL org.label-schema.name="Apache Spark cluster"
 LABEL org.label-schema.description="Apache Spark cluster-base image"
+
+# -- Layer: OS + Python 3
 
 RUN mkdir -p ${shared_workspace} \
     && apt-get update -y \
@@ -19,7 +21,7 @@ RUN mkdir -p ${shared_workspace} \
 
 ENV SHARED_WORKSPACE=${shared_workspace}
 
-# -- Runtime
+# -- Layer: Runtime
 
 VOLUME ${shared_workspace}
 

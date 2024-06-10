@@ -18,7 +18,7 @@ RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSIO
     && rm -rf "Python-$PYTHON_VERSION.tgz"
 
 # move directory
-RUN cd "Python-$PYTHON_VERSION"
+WORKDIR "Python-$PYTHON_VERSION"
 
 # configure the build with optimization flags
 RUN ./configure --enable-optimizations
@@ -33,7 +33,7 @@ RUN make altinstall
 RUN alias python='/usr/local/bin/python${PYTHON_MAJOR_VERSION}'
 
 # return on dir tree
-RUN cd ..
+WORKDIR /
 
 # install pip/python dependencie
 RUN python -m pip install --no-cache --upgrade pip wheel

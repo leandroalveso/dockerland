@@ -1,9 +1,9 @@
 # Before `docker compose up`, you build the base images:
-# >> docker build -f ./dockerfiles/spark-base.dockerfile -t spark-base .
-# >> docker build -f ./dockerfiles/spark.dockerfile -t spark .
-# >> docker build -f ./dockerfiles/spark-master.dockerfile -t spark-master .
-# >> docker build -f ./dockerfiles/spark-worker.dockerfile -t spark-worker .
-# >> docker build -f ./dockerfiles/spark-jupyterlab.dockerfile -t spark-jupyterlab .
+# >> docker build -f ./dockerfiles/apache-spark-base.dockerfile -t apache-spark-base .
+# >> docker build -f ./dockerfiles/apache-spark.dockerfile -t apache-spark .
+# >> docker build -f ./dockerfiles/apache-spark-jupyterlab.dockerfile -t pyspark-jupyterlab .
+#
+# >> docker compose up --scale spark-worker=3
 
 version: '3'
 
@@ -15,9 +15,9 @@ networks:
 
 services:
 
-  spark-jupyterlab:
-    image: spark-jupyterlab:latest
-    container_name: spark-jupyterlab
+  pyspark-jupyterlab:
+    image: pyspark-jupyterlab:latest
+    container_name: pyspark-jupyterlab
     ports:
       - 8888:8888
       - 4040:4040
@@ -28,7 +28,7 @@ services:
   
   spark-master:
     container_name: spark-master
-    image: spark-master:latest
+    image: apache-spark:latest
     restart: unless-stopped
     ports:
       - 8080:8080
@@ -37,49 +37,18 @@ services:
       - spark-cluster
     volumes:
       - ./workspace:/opt/workspace
+    command: bin/spark-class org.apache.spark.deploy.master.Master --ip spark-master --port 7077 --webui-port 8080
   
-  spark-worker-1:
-    container_name: spark-worker-1
-    image: spark-worker:latest
+  spark-worker:
+    image: apache-spark:latest
     restart: unless-stopped
     depends_on:
       - spark-master
     environment:
-      - SPARK_WORKER_CORES=2
-      - SPARK_WORKER_MEMORY=512m
-    ports:
-      - 8081:8081
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1024mb
     networks:
       - spark-cluster
     volumes:
       - ./workspace:/opt/workspace
-  
-  spark-worker-2:
-    container_name: spark-worker-2
-    image: spark-worker:latest
-    depends_on:
-      - spark-master
-    environment:
-      - SPARK_WORKER_CORES=2
-      - SPARK_WORKER_MEMORY=512m
-    ports:
-      - 8082:8081
-    networks:
-      - spark-cluster
-    volumes:
-      - ./workspace:/opt/workspace
-
-  spark-worker-3:
-    container_name: spark-worker-3
-    image: spark-worker:latest
-    depends_on:
-      - spark-master
-    environment:
-      - SPARK_WORKER_CORES=2
-      - SPARK_WORKER_MEMORY=512m
-    ports:
-      - 8083:8081
-    networks:
-      - spark-cluster
-    volumes:
-      - ./workspace:/opt/workspace
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077

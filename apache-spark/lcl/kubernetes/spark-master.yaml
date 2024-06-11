@@ -1,0 +1,26 @@
+# before "kubectl apply -f <instance>.yaml", do it:
+# > kubectl apply -f spark-master.yaml
+# > kubectl expose deployment spark-master --type=NodePort --target-port=8080 --name=spark-master-ui
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-master
+spec:
+  selector:
+    matchLabels:
+      app: spark-master
+  template:
+    metadata:
+      labels:
+        app: spark-master
+    spec:
+      containers:
+      - name: spark-master
+        image: spark:python3
+        environment:
+          - SPARK_MODE=master
+        ports:
+        - containerPort: 7077
+        - containerPort: 8080
+        command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --ip spark-master --port 7077 --webui-port 8080

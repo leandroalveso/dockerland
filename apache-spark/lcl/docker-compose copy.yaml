@@ -1,0 +1,85 @@
+# Before `docker compose up`, you build the base images:
+# >> docker build -f ./dockerfiles/apache-spark-base.dockerfile -t spark-base .
+# >> docker build -f ./dockerfiles/apache-spark.dockerfile -t spark .
+# >> docker build -f ./dockerfiles/apache-spark-master.dockerfile -t spark-master .
+# >> docker build -f ./dockerfiles/apache-spark-worker.dockerfile -t spark-worker .
+# >> docker build -f ./dockerfiles/apache-spark-jupyterlab.dockerfile -t pyspark-jupyterlab .
+
+version: '3'
+
+volumes:
+  workspace:
+
+networks:
+  spark-cluster:
+
+services:
+
+  pyspark-jupyterlab:
+    image: pyspark-jupyterlab:latest
+    container_name: pyspark-jupyterlab
+    ports:
+      - 8888:8888
+      - 4040:4040
+    networks:
+      - spark-cluster
+    volumes:
+      - ./workspace:/opt/workspace
+  
+  spark-master:
+    container_name: spark-master
+    image: spark-master:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+      - 7077:7077
+    networks:
+      - spark-cluster
+    volumes:
+      - ./workspace:/opt/workspace
+  
+  spark-worker-1:
+    container_name: spark-worker-1
+    image: spark-worker:latest
+    restart: unless-stopped
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8081:8080
+    networks:
+      - spark-cluster
+    volumes:
+      - ./workspace:/opt/workspace
+  
+  spark-worker-2:
+    container_name: spark-worker-2
+    image: spark-worker:latest
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8082:8080
+    networks:
+      - spark-cluster
+    volumes:
+      - ./workspace:/opt/workspace
+
+  spark-worker-3:
+    container_name: spark-worker-3
+    image: spark-worker:latest
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=512m
+    ports:
+      - 8083:8080
+    networks:
+      - spark-cluster
+    volumes:
+      - ./workspace:/opt/workspace

@@ -50,8 +50,8 @@ RUN make altinstall
 RUN export PYTHON_MAJOR_VERSION="$PYTHON_MAJOR_VERSION"
 RUN echo 'alias python=/usr/local/bin/python$PYTHON_MAJOR_VERSION' >> ~/.bashrc
 
-RUN pip install --upgrade --break-system-packages pip
-RUN pip install --no-cache-dir --break-system-packages wheel pyspark==3.5.1
+RUN pip install --upgrade pip wheel
+RUN pip install --no-cache-dir pyspark==3.5.1
 
 WORKDIR /
 

@@ -1,10 +1,14 @@
 ARG PYTHON_VERSION
-ARG PYTHON_MAJOR_VERSION
 
 FROM --platform=arm64 debian:stable-slim AS BUILDER
 
-ENV PYTHON_VERSION=3.11.9
-ENV PYTHON_MAJOR_VERSION=3.11
+## -- Metadata Layer
+
+ENV BUILD_DATE="$(date -u +'%Y-%m-%d')"
+ENV PYTHON_VERSION=$PYTHON_VERSION
+RUN PYTHON_MAJOR_VERSION=$(echo $PYTHON_VERSION | cut -d'.' -f1,2)
+
+## -- System & Python Dependencies Layer
 
 RUN apt-get update \
     && apt-get install build-essential wget make \
@@ -19,6 +23,8 @@ RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSIO
     && tar -xf "Python-$PYTHON_VERSION.tgz" \
     && rm -rf "Python-$PYTHON_VERSION.tgz"
 
+## -- Application Layer
+
 # move directory
 WORKDIR "/Python-$PYTHON_VERSION"
 
@@ -30,17 +36,17 @@ RUN make -j$(nproc)
 
 # install Python on system
 RUN make altinstall
-# RUN make
-# RUN make install
+# RUN make && make install
 
 # add alias-command to run python
 RUN echo 'alias python=/usr/local/bin/python$PYTHON_MAJOR_VERSION' >> ~/.bashrc
 
 # add pip and Python dependencies
-RUN pip install --upgrade --break-system-packages pip
-RUN pip install --no-cache-dir --break-system-packages wheel
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir wheel setuptools
 
-# return on dir tree
+# -- Runtime Layer
+
 WORKDIR /
 
 CMD ["/bin/sh"]

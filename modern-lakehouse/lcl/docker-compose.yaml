@@ -1,14 +1,18 @@
 # >> docker compose up airflow-init
-# >> docker compose up -d --scale spark-worker=2
-
-networks:
-  platform:
+# >> docker compose up -d --scale spark-worker=3
 
 volumes:
   airflow:
   airflowdb:
+  connectors:
+  es_data:
   kafka:
   lake:
+  metastore:
+  neo4j:
+  neo4j_data:
+  postgresql:
+  warehouse:
   zookeeper:
 
 x-airflow-common:
@@ -54,15 +58,15 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2024-05-10T01-41-38Z
-    hostname: minio
     container_name: minio
+    hostname: minio
     restart: unless-stopped
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_USERNAME:-minio-admin}
       MINIO_ROOT_PASSWORD: ${MINIO_USERNAME:-minio*secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - ./lake:/data
     command: ["server", "/data", "--console-address", ":9001"]
@@ -71,6 +75,70 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  postgresql: # https://hub.docker.com/_/postgres
+    image: postgres:16.3-alpine
+    restart: unless-stopped
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    # or set shared memory limit when deploy via swarm stack
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres*54321}
+      POSTGRES_DB: ${POSTGRES_DB:-postgresdb}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_HOST_AUTH_METHOD: "--auth-host=scram-sha-256"
+      # POSTGRES_INITDB_WALDIR: "--locale-provider=icu --icu-locale=de-DE"
+      # PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - 5433:5432
+    volumes:
+      - ./postgresql:/var/lib/postgresql/data
+      # - ./my-postgres.conf":/etc/postgresql/postgresql.conf
+    # volumes:
+    #  - type: tmpfs
+    #    target: /dev/shm
+    #    tmpfs:
+    #      size: 134217728 # 128*2^20 bytes = 128Mb
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres-admin"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  adminer:
+    image: adminer:4.8.1
+    restart: unless-stopped
+    ports:
+      - 8888:8888
+  
+  apache-hive-server:
+    image: apache/hive:4.0.0
+    container_name: apache-hive-server
+    environment:
+      HIVE_VERSION: "4.0.0"
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf 
+    ports:
+      - 9083:9083
+    volumes:
+      - ./warehouse:/opt/hive
+    command: beeline -u 'jdbc:hive2://localhost:10000/'
+
+  apache-hive-metastore:
+    image: apache/hive:4.0.0
+    container_name: apache-hive-metastore
+    environment:
+      HIVE_VERSION: "4.0.0"
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      HIVE_CUSTOM_CONF_DIR: /hive_custom_conf 
+    ports:
+      - 9083:9083
+    volumes:
+      - ./metastore:/opt
+    command: beeline -u 'jdbc:hive2://localhost:10000/'
   
   zookeeper:
     image: docker.io/bitnami/zookeeper:3.9
@@ -100,6 +168,92 @@ services:
       - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
   
+  kafka-schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    hostname: kafka-schema-registry
+    container_name: kafka-schema-registry
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
+  
+  kafka-rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.6.1
+    hostname: kafka-rest-proxy
+    container_name: kafka-rest-proxy
+    depends_on:
+      - zookeeper
+      - kafka
+      - kafka-schema-registry
+    environment:
+      KAFKA_REST_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082/
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://kafka-schema-registry:8081/
+      KAFKA_REST_HOST_NAME: kafka-rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+    ports:
+      - "8082:8082"
+  
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.6.1
+    hostname: kafka-connect
+    container_name: kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: 'kafka:9092'
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: 'http://kafka-schema-registry:8081'
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://kafka-schema-registry:8081'
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_PLUGIN_PATH: '/usr/share/java,/etc/kafka-connect/jars,/usr/share/confluent-hub-components'
+    volumes:
+      - ./connectors:/etc/kafka-connect/jars/
+    depends_on:
+      - zookeeper
+      - kafka
+      - kafka-schema-registry
+      - kafka-rest-proxy
+    command:
+      - bash
+      - -c
+      - |
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:latest
+        confluent-hub install --no-prompt confluentinc/kafka-connect-datagen:0.4.0
+        /etc/confluent/docker/run
+  
+  ksqldb-server:
+    image: confluentinc/cp-ksqldb-server:7.6.1
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      KSQL_LISTENERS: http://0.0.0.0:8088/
+      KSQL_KSQL_SERVICE_ID: ksqldb-server_
+    ports:
+      - "8088:8088"
+  
   spark-master:
     image: spark:3.5.1-python3
     hostname: spark-master
@@ -128,13 +282,11 @@ services:
     image: postgres:13-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow*54321
-      POSTGRES_DB: airflow
+      POSTGRES_USER: {AIRFLOW_USER:-airflow}
+      POSTGRES_PASSWORD: {AIRFLOW_PASSWORD:-airflow*54321}
+      POSTGRES_DB: {AIRFLOW_DB:-airflow}
     volumes:
       - ./airflowdb:/var/lib/postgresql/data
-    networks:
-      - platform
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -144,8 +296,12 @@ services:
   airflow-webserver:
     <<: *airflow-common
     restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
     ports:
-      - "8080:8080"
+      - "8000:8000"
     command: webserver
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -153,12 +309,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
-    networks:
-      - platform
 
   airflow-scheduler:
     <<: *airflow-common
@@ -174,8 +324,6 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
-    networks:
-      - platform
 
   airflow-init:
     <<: *airflow-common
@@ -232,11 +380,81 @@ services:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow-admin}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow*54321}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/airflow:/sources
-    networks:
-      - platform
+  
+  neo4j:
+      image: neo4j:3.5.26
+      container_name: neo4j_amundsen
+      environment:
+        - NEO4J_AUTH=neo4j/test
+      ulimits:
+        nofile:
+          soft: 40000
+          hard: 40000
+      ports:
+          - 7474:7474
+          - 7687:7687
+      volumes:
+          - ./neo4j/conf:/var/lib/neo4j/conf
+          - ./neo4j/plugins:/var/lib/neo4j/plugins
+          - ./neo4j_data:/data
+  
+  elasticsearch:
+      image: elasticsearch:8.0.0
+      container_name: es_amundsen
+      environment:
+        - discovery.type=single-node
+        - xpack.security.enabled=false
+      ports:
+          - 9200:9200
+      volumes:
+        - ./es_data:/usr/share/elasticsearch/data
+      ulimits:
+        nofile:
+          soft: 65536
+          hard: 65536
+  
+  amundsensearch:
+      image: amundsendev/amundsen-search:4.0.2
+      container_name: amundsensearch
+      depends_on:
+        - elasticsearch
+      environment:
+        - PROXY_ENDPOINT=es_amundsen
+      ports:
+        - 5001:5000
+      command: gunicorn -w 2 --bind :5000 search_service.search_wsgi
+  
+  amundsenmetadata:
+      image: amundsendev/amundsen-metadata:3.11.0
+      container_name: amundsenmetadata
+      depends_on:
+        - neo4j
+      environment:
+         - PROXY_HOST=bolt://neo4j_amundsen
+      ports:
+        - 5002:5000
+      command: gunicorn -w 2 --bind :5000 metadata_service.metadata_wsgi
+  
+  amundsenfrontend:
+      image: amundsendev/amundsen-frontend:4.2.0
+      container_name: amundsenfrontend
+      depends_on:
+        - amundsenmetadata
+        - amundsensearch
+      environment:
+        - SEARCHSERVICE_BASE=http://amundsensearch:5000
+        - METADATASERVICE_BASE=http://amundsenmetadata:5000
+        # Only for easy config-less Quickstart bookmark evalutation. `TestConfig` extends ordinary `LocalConfig` by
+        # defining `AUTH_USER_METHOD` to a hardcoded dummy user in `amundsen_application.tests.test_utils.get_test_user()`
+        # See further docs in https://github.com/amundsen-io/amundsenfrontendlibrary/blob/master/docs/configuration.md#flask
+        # and https://github.com/amundsen-io/amundsenfrontendlibrary/blob/master/docs/configuration.md#authentication
+        - FRONTEND_SVC_CONFIG_MODULE_CLASS=amundsen_application.config.TestConfig
+      ports:
+        - 5000:5000
+      command: gunicorn -w 2 --bind :5000 amundsen_application.wsgi

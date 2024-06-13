@@ -1,6 +1,7 @@
-FROM openjdk:8-jre-alpine
+FROM openjdk:11-jre-slim
 
 WORKDIR /opt
+
 ENV HADOOP_VERSION=3.3.4
 ENV METASTORE_VERSION=3.0.0
 ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
@@ -15,8 +16,9 @@ RUN curl -L -o postgresql-42.6.0.jar <https://jdbc.postgresql.org/download/postg
     cp postgresql-42.6.0.jar ${HIVE_HOME}/lib/ && \\
     rm -rf  postgresql-42.6.0.jar
 
-COPY metastore-site.xml ${HIVE_HOME}/conf
-COPY ./scripts/metastore-entrypoint.sh /entrypoint.sh
+COPY ./dockerfiles/metastore-site.xml ${HIVE_HOME}/conf
+COPY ./dockerfiles/entrypoint.sh /entrypoint.sh
+
 RUN addgroup -S hive -g 1000 && \\
     adduser -S -G hive -u 1000 -h ${HIVE_HOME} hive && \\
     chown hive:hive -R ${HIVE_HOME} && \\

@@ -1,0 +1,29 @@
+# https://hub.docker.com/_/redis
+
+volumes:
+  redis:
+
+services:
+
+  redis:
+    image: redis:7.2.5
+    container_name: cache-local
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis-admin
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis*12345
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      - ./redis:/data
+    command: redis-server --appendonly yes
+    # command: redis-server --save 60 1000 --loglevel warning
+    # command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 60s
+      timeout: 30s
+      retries: 50
+      start_period: 30s

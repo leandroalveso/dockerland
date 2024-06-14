@@ -1,0 +1,60 @@
+# >> docker build -f .\apache-zeppelin.dockerfile -t apache-zeppelin:latest .
+
+networks:
+  apache-zeppelin:
+
+volumes:
+  workspace:
+
+services:
+  
+  namenode:
+    image: apache/hadoop:3
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - 9870:9870
+    env_file:
+      - ./config
+    environment:
+        ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+  
+  datanode:
+    image: apache/hadoop:3
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./config      
+  
+  resourcemanager:
+    image: apache/hadoop:3
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+        - 8088:8088
+    env_file:
+      - ./config
+    volumes:
+      - ./test.sh:/opt/test.sh
+  
+  nodemanager:
+    image: apache/hadoop:3
+    command: ["yarn", "nodemanager"]
+    env_file:
+      - ./config
+
+  zeppelin:
+    image: apache-zeppelin:lastest
+    # build: apache-zeppelin.dockerfile
+    container_name: apache-zeppelin
+    hostname: apache-zeppelin
+    environment:
+      HADOOP_CONF_DIR: "hdfs://namenode:9870"
+      USE_HADOOP: "true"
+    ports:
+      - 80:8080
+    networks:
+      - apache-zeppelin
+    volumes:
+      - ./workspace:/opt/zeppelin/workspace
+      - ./logs:/opt/zeppelin/logs
+      - ./run:/opt/zeppelin/run

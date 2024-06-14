@@ -220,6 +220,15 @@ services:
       - "./ksqldb/:/var/lib/kafka-streams/data"
       - "./ksqldb_extensions/:/opt/ksqldb-udfs"
 
+  ksqldb-cli:
+    image: confluentinc/ksqldb-cli:0.28.2
+    container_name: ksqldb-cli
+    hostname: ksqldb-cli
+    depends_on:
+      - ksqldb-server
+    entrypoint: /bin/sh
+    tty: true
+  
   postgresql:
     hostname: postgresql
     container_name: postgresql

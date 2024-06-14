@@ -47,6 +47,11 @@ services:
     # build: apache-zeppelin.dockerfile
     container_name: apache-zeppelin
     hostname: apache-zeppelin
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+      - nodemanager
     environment:
       HADOOP_CONF_DIR: "hdfs://namenode:9870"
       USE_HADOOP: "true"

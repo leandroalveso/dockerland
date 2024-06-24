@@ -1,0 +1,51 @@
+# before "docker compose up", do it:
+# > docker build -t local-apache-nifi:latest .
+
+version: '3.8'
+
+services:
+
+  nifi-node-1:
+    image: local-apache-nifi:latest
+    container_name: nifi-node-1
+    ports:
+      - "8081:8080"
+      - "8443:8443"
+    environment:
+      - NIFI_CLUSTER_IS_NODE=true
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+      - NIFI_ZK_CONNECT_STRING=zookeeper:2181
+      - NIFI_ELECTION_MAX_WAIT=1 min
+      - NIFI_ELECTION_MAX_CANDIDATES=2
+    networks:
+      - nifi-network
+
+  nifi-node-2:
+    image: local-apache-nifi:latest
+    container_name: nifi-node-2
+    ports:
+      - "8082:8080"
+      - "8444:8443"
+    environment:
+      - NIFI_CLUSTER_IS_NODE=true
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8083
+      - NIFI_ZK_CONNECT_STRING=zookeeper:2181
+      - NIFI_ELECTION_MAX_WAIT=1 min
+      - NIFI_ELECTION_MAX_CANDIDATES=2
+    networks:
+      - nifi-network
+
+  zookeeper:
+    image: zookeeper:3.7.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOO_MY_ID=1
+      - ZOO_SERVERS=server.1=zookeeper:2888:3888
+    networks:
+      - nifi-network
+
+networks:
+  nifi-network:
+    driver: bridge

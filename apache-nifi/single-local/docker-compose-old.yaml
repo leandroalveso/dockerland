@@ -1,0 +1,67 @@
+networks:
+  apache-nifi:
+    driver: bridge
+
+volumes:
+  apache-nifi:
+
+services:
+  apache-nifi:
+    image: apache/nifi:1.26.0
+    container_name: apache-nifi-local
+    hostname: apache-nifi
+    restart: on-failure
+    environment:
+      # cluster-settings
+      # NIFI_CLUSTER_IS_NODE: true
+      # NIFI_CLUSTER_NODE_PROTOCOL_PORT: 8082
+      # NIFI_ZK_CONNECT_STRING: zookeeper:2181
+      # NIFI_ELECTION_MAX_WAIT: 1 min
+      # NIFI_ELECTION_MAX_CANDIDATES: 2
+      # image-files-directories
+      # NIFI_HOME: /opt/nifi/nifi-current
+      # NIFI_LOG_DIR: /opt/nifi/nifi-current/logs
+      # NIFI_TOOLKIT_HOME: /opt/nifi/nifi-toolkit-current
+      # NIFI_PID_DIR: /opt/nifi/nifi-current/run
+      # NIFI_BASE_DIR: /opt/nifi
+      # http-external web external point
+      # NIFI_WEB_HTTP_HOST: '0.0.0.0'
+      # NIFI_WEB_HTTP_PORT: 8443
+      # https-external web external point
+      #NIFI_WEB_HTTPS_HOST: '0.0.0.0'
+      NIFI_WEB_HTTPS_PORT: 8443
+      SINGLE_USER_CREDENTIALS_USERNAME: nifi-admin
+      SINGLE_USER_CREDENTIALS_PASSWORD: nifi*54321
+      # # Standalone Instance secured with HTTPS and Mutual TLS Authentication
+      # AUTH: tls
+      # KEYSTORE_PATH: /opt/certs/keystore.jks
+      # KEYSTORE_TYPE: JKS
+      # KEYSTORE_PASSWORD: QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs
+      # TRUSTSTORE_PATH: /opt/certs/truststore.jks
+      # TRUSTSTORE_PASSWORD: rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE
+      # TRUSTSTORE_TYPE: JKS
+      # INITIAL_ADMIN_IDENTITY: 'CN=Random User, O=Apache, OU=NiFi, C=US'
+      # # Standalone Instance secured with HTTPS and LDAP Authentication
+      # AUTH: ldap
+      # KEYSTORE_PATH: /opt/certs/keystore.jks
+      # KEYSTORE_TYPE: JKS
+      # KEYSTORE_PASSWORD: QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs
+      # TRUSTSTORE_PATH: /opt/certs/truststore.jks
+      # TRUSTSTORE_PASSWORD: rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE
+      # TRUSTSTORE_TYPE: JKS
+      # INITIAL_ADMIN_IDENTITY: 'cn=admin,dc=example,dc=org'
+      # LDAP_AUTHENTICATION_STRATEGY: 'SIMPLE'
+      # LDAP_MANAGER_DN: 'cn=admin,dc=example,dc=org'
+      # LDAP_MANAGER_PASSWORD: 'password'
+      # LDAP_USER_SEARCH_BASE: 'dc=example,dc=org'
+      # LDAP_USER_SEARCH_FILTER: 'cn={0}'
+      # LDAP_IDENTITY_STRATEGY: 'USE_DN'
+      # LDAP_URL: 'ldap://ldap:389'
+    ports:
+      - target: 8443
+        published: 8443
+        protocol: tcp
+    networks:
+      - apache-nifi
+    volumes:
+      - ./apache-nifi:/opt/nifi

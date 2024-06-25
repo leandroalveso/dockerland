@@ -1,0 +1,33 @@
+version: '3'
+
+networks:
+  cassandra-net:
+    driver: bridge
+
+services:
+
+  apache-cassandra-node-1:
+    image: cassandra:5.0
+    container_name: apache-cassandra-node-1
+    environment:
+      - CASSANDRA_SEEDS=apache-cassandra-node-1
+    ports:
+      - "9042:9042"
+    networks:
+      - cassandra-net
+
+  apache-cassandra-node-2:
+    image: cassandra:5.0
+    container_name: apache-cassandra-node-2
+    environment:
+      - CASSANDRA_SEEDS=apache-cassandra-node-1
+    networks:
+      - cassandra-net
+
+  apache-cassandra-node-3:
+    image: cassandra:5.0
+    container_name: apache-cassandra-node-3
+    environment:
+      - CASSANDRA_SEEDS=apache-cassandra-node-1
+    networks:
+      - cassandra-net

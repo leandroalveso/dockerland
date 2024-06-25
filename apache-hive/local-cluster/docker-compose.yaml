@@ -1,0 +1,59 @@
+# How to run Apache Hive cluster on Docker: https://hive.apache.org/developement/quickstart/
+#
+# Before "docker compose up", do it:
+# You must download the PostgreSQL JDBC driver from the official PostgreSQL website or a repository like Maven.
+# >> mvn dependency:copy -Dartifact="org.postgresql:postgresql:42.5.1"
+# >> export POSTGRES_LOCAL_PATH=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)/org/postgresql/postgresql/42.5.1/postgresql-42.5.1.jar
+#
+# After "docker compose up", do it:
+# >> Access the HiveServer2 web interface at http://localhost:10002.
+# >> Connect to HiveServer2 using Beeline: docker exec -it hiveserver2 beeline -u 'jdbc:hive2://hiveserver2:10000/'
+
+version: '3'
+
+volumes:
+  postgres_data:
+  warehouse:
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: metastore_db
+      POSTGRES_USER: hive-admin
+      POSTGRES_PASSWORD: hive*54321
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  metastore:
+    image: apache/hive:4.0.0
+    depends_on:
+      - postgres
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      SERVICE_OPTS: >-
+        -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore_db
+        -Djavax.jdo.option.ConnectionUserName=hive-admin
+        -Djavax.jdo.option.ConnectionPassword=hive*54321
+    ports:
+      - "9083:9083"
+    volumes:
+      - ./warehouse:/opt/hive/data/warehouse
+      - ./postgresql-42.7.3.jar:/opt/hive/lib/postgres.jar
+
+  hiveserver2:
+    image: apache/hive:4.0.0
+    depends_on:
+      - metastore
+    environment:
+      SERVICE_NAME: hiveserver2
+      SERVICE_OPTS: -Dhive.metastore.uris=thrift://metastore:9083
+      IS_RESUME: "true"
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    volumes:
+      - ./warehouse:/opt/hive/data/warehouse

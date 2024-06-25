@@ -4,6 +4,8 @@
 volumes:
   airflow:
   airflowdb:
+  cassandra-node-1:
+  cassandra-node-2:
   connectors:
   es_data:
   kafka:
@@ -63,7 +65,7 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_USERNAME:-minio-admin}
-      MINIO_ROOT_PASSWORD: ${MINIO_USERNAME:-minio*secret}
+      MINIO_ROOT_PASSWORD: ${MINIO_USERNAME:-minio*54321}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -111,6 +113,61 @@ services:
     restart: unless-stopped
     ports:
       - 8888:8888
+  
+  cassandra-1:
+    image: cassandra:5.0
+    container_name: "cassandra-1"
+    ports:
+      - 7000:7000
+      - 9042:9042
+    networks:
+      - cassandra-net
+    environment:
+      - CASSANDRA_START_RPC=true       # default
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0  # default
+      - CASSANDRA_LISTEN_ADDRESS=auto  # default, use IP addr of container # = CASSANDRA_BROADCAST_ADDRESS
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+    volumes:
+      - ./cassandra-node-1:/var/lib/cassandra:rw
+    restart:
+      on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+  cassandra-2:
+    image: cassandra:5.0
+    container_name: "cassandra-2"
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+    restart:
+      on-failure
+    environment:
+      - CASSANDRA_START_RPC=true       # default
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0  # default
+      - CASSANDRA_LISTEN_ADDRESS=auto  # default, use IP addr of container # = CASSANDRA_BROADCAST_ADDRESS
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - CASSANDRA_SEEDS=cassandra-1
+    ports:
+      - 9043:9042
+    networks:
+      - cassandra-net
+    volumes:
+      - ./cassandra-node-2:/var/lib/cassandra:rw
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
   
   apache-hive-server:
     image: apache/hive:4.0.0

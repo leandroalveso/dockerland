@@ -1,0 +1,16 @@
+# Link: https://datafusion.apache.org/user-guide/cli/installation.html
+
+networks:
+  apache-data-fusion-comet:
+
+volumes:
+  apache-data-fusion-comet:
+
+services:
+  build:
+    context: .
+    dockerfile: Dockerfile
+  container_name: apache-data-fusion-comet
+  hostname: apache-data-fusion-comet
+  volumes:
+    - ./apache-data-fusion-comet:/data datafusion-cli

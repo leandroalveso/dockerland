@@ -1,0 +1,21 @@
+# Reference: https://gluten.apache.org/developers/docker_ubuntu22.04.html
+
+networks:
+  apache-gluten:
+
+volumes:
+  apache-gluten:
+
+services:
+  apache-gluten:
+    build: 
+      context: .
+      dockerfile: apache-gluten.dockerfile
+    container_name: apache-gluten
+    hostname: apache-gluten
+    ports:
+      - 8080:8080
+    networks:
+      - apache-gluten
+    volumes:
+      - ./apache-gluten:/gluten/data

@@ -1,0 +1,16 @@
+# Link: https://arrow.apache.org/docs/r/articles/developers/docker.html
+
+networks:
+  apache-arrow:
+
+volumes:
+  apache-arrow:
+
+services:
+  image: apache/arrow-dev:r-rhub-ubuntu-release-latest
+  container_name: apache-arrow
+  hostname: apache-arrow
+  environment:
+    ARROW_DEPENDENCY_SOURCE: AUTO
+  volumes:
+    - ./apache-arrow:/arrow

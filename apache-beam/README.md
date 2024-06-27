@@ -7,7 +7,9 @@
 This is based on the official solution provide by **Apache Beam**.
 
 ## REFERENCES
+
 - [Apache Beam Official](https://beam.apache.org/).
 
 ## COPYRIGHTS
+
 Copyright (c) 2024 Leandro Alves de Oliveira (engleandroalveso@gmail.com).

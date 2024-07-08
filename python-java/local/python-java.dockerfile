@@ -1,6 +1,6 @@
 ARG JAVA_IMAGE_TAG=21-jre
 
-FROM eclipse-temurin:${JAVA_IMAGE_TAG} AS python-base
+FROM eclipse-temurin:${JAVA_IMAGE_TAG} AS JAVA
 
 # -- Layer: OS + Python 3
 

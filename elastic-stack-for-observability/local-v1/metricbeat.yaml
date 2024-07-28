@@ -1,0 +1,79 @@
+metricbeat.modules:
+  - module: system
+    metricsets: ["core", "cpu", "load", "diskio", "memory", "network", "process", "socket"]
+    process.cgroups.enabled: true
+    period: 15s
+
+  - module: docker
+    metricsets: ["container", "cpu", "diskio", "healthcheck", "info", "image", "memory", "network"]
+    hosts: ["unix:///var/run/docker.sock"]
+    period: 15s
+
+metricbeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      templates:
+        # Nginx
+        - condition: { contains: { docker.container.image: nginx }}
+          config:
+            - module: nginx
+              metricsets: ["stubstatus"]
+              hosts: ["https://${data.docker.container.name}:443"]
+              server_status_path: "nginx-status"
+              headers: { Authorization: "Bearer ${NGINX_PASSWORD}" }
+              ssl.certificate_authorities: ["/usr/share/metricbeat/config/certificates/ca/ca.crt"]
+              period: 5s
+        # Redis
+        - condition: { contains: { docker.container.image: redis }}
+          config:
+            - module: redis
+              metricsets: ["info", "keyspace"]
+              period: 10s
+              hosts: ["redis://${data.host}:${data.port}"]
+              password: secret
+        # Elasticsearch
+        - condition: { contains: { docker.container.image: elasticsearch }}
+          config:
+            - module: elasticsearch
+              metricsets: ["ccr", "enrich", "cluster_stats", "index", "index_recovery", "index_summary", "ml_job", "node_stats", "shard"]
+              hosts: ["https://${data.docker.container.name}:9200"]
+              username: elastic
+              password: ${ELASTIC_PASSWORD}
+              ssl.certificate_authorities: ["/usr/share/metricbeat/config/certificates/ca/ca.crt"]
+              xpack.enabled: true
+              period: 30s
+        # Kibana
+        - condition: { contains: { docker.container.image: kibana }}
+          config:
+            - module: kibana
+              metricsets: ["stats"]
+              hosts: ["https://${data.docker.container.name}:5601"]
+              username: elastic
+              password: ${ELASTIC_PASSWORD}
+              ssl.certificate_authorities: ["/usr/share/metricbeat/config/certificates/ca/ca.crt"]
+              xpack.enabled: true
+              period: 30s
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata:
+      match_source_index: 5
+  - add_cloud_metadata: ~
+
+tags: ['service-A']
+
+output.elasticsearch:
+  hosts: ["https://demo-elasticsearch-1:9200"]
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/metricbeat/config/certificates/ca/ca.crt"]
+
+setup:
+  kibana:
+    host: https://demo-kibana-1:5601
+    ssl.certificate_authorities: ["/usr/share/metricbeat/config/certificates/ca/ca.crt"]
+  dashboards: { enabled: true,  retry: { enabled: true, interval: 10s }}
+
+monitoring:
+  enabled: true

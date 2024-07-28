@@ -1,0 +1,260 @@
+# This configuration file will launch Elastic Stack components for
+# demonstration of the observability features with TLS and authentication.
+#
+# See: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-compose-file
+
+version: "3"
+
+networks:
+  elasticstack:
+  application:
+
+volumes:
+  es-data:
+  es-logs:
+
+secrets:
+  apm-server.yml:
+    file: ./apm-server.yml
+  filebeat.yml:
+    file: ./filebeat.yml
+  heartbeat.yml:
+    file: ./heartbeat.yml
+  kibana.yml:
+    file: ./kibana.yml
+  metricbeat.yml:
+    file: ./metricbeat.yml
+  nginx.conf:
+    file: ./nginx.conf
+
+services:
+
+  app:
+    depends_on: [ 'redis' ]
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    volumes:
+      - ./certificates:/certificates/
+    networks:
+      - application
+    environment:
+      - REDIS_URL=demo-redis-1:6379
+      - REDIS_PWD=${REDIS_PASSWORD}
+      - ELASTIC_APM_SERVICE_NAME=demo-app
+      - ELASTIC_APM_ENABLED=true
+      - ELASTIC_APM_SERVER_URL=https://demo-apm_server-1:8200
+      - ELASTIC_APM_SECRET_TOKEN=${APM_SERVER_TOKEN}
+      - ELASTIC_APM_SERVER_CA_CERT_FILE=/certificates/ca/ca.crt
+      - ELASTIC_APM_IGNORE_URLS=/status
+      - ELASTIC_APM_ENVIRONMENT=staging
+      - ELASTIC_APM_METRICS_INTERVAL=5s
+      - ELASTIC_APM_LOG_FILE=stdout
+    labels:
+      filebeat_enabled: "true"
+    healthcheck:
+      test: curl --max-time 120 --retry 120 --retry-delay 1 --show-error --silent http://0.0.0.0:8000/status
+
+  script:
+    build:
+      context: .
+      dockerfile: Dockerfile.script
+    volumes:
+      - ./certificates:/certificates/
+    networks:
+      - application
+    environment:
+      - ELASTIC_APM_SERVICE_NAME=demo-script
+      - ELASTIC_APM_ENABLED=true
+      - ELASTIC_APM_SERVER_URL=https://demo-apm_server-1:8200
+      - ELASTIC_APM_SECRET_TOKEN=${APM_SERVER_TOKEN}
+      - ELASTIC_APM_SERVER_CA_CERT_FILE=/certificates/ca/ca.crt
+      - ELASTIC_APM_ENVIRONMENT=staging
+      - ELASTIC_APM_METRICS_INTERVAL=5s
+      - ELASTIC_APM_LOG_FILE=stdout
+    labels:
+      filebeat_enabled: "true"
+
+  nginx:
+    image: nginx:alpine
+    depends_on: [ 'app' ]
+    secrets:
+      - source: nginx.conf
+        target: /etc/nginx/nginx.conf
+    volumes:
+      - ./certificates:/etc/nginx/certificates/
+    networks:
+      - application
+    ports:
+      - ${NGINX_HTTP_PORT}:80
+      - ${NGINX_HTTPS_PORT}:443
+    healthcheck:
+      test: nginx -t
+
+  redis:
+    image: redis:alpine3.20
+    command: redis-server --bind 0.0.0.0 --requirepass ${REDIS_PASSWORD}
+    networks:
+      - application
+    healthcheck:
+      test: redis-cli ping
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${VERSION}
+    environment:
+      - node.name=demo-elasticsearch-1
+      - cluster.name=elastic-stack-demo
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - network.host=demo-elasticsearch-1,_local_
+      - network.publish_host=demo-elasticsearch-1
+      - ES_JAVA_OPTS=-Xms1G -Xmx1G -Des.transport.cname_in_publish_address=true
+      # Security & TLS
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.key
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.crt
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certificates/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.key
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certificates/elasticsearch/elasticsearch.crt
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certificates/ca/ca.crt
+    ulimits: { nofile: { soft: 65535, hard: 65535 }, memlock: -1 }
+    networks:
+      - elasticstack
+    ports:
+    - 9200:9200
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+      - es-logs:/usr/share/elasticsearch/logs
+      - ./certificates:/usr/share/elasticsearch/config/certificates/
+    healthcheck:
+      test: >
+        curl --cacert /usr/share/elasticsearch/config/certificates/ca/ca.crt
+        --max-time 120
+        --retry 120
+        --retry-delay 1
+        --show-error
+        --silent https://elastic:${ELASTIC_PASSWORD}@localhost:9200
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${VERSION}
+    depends_on: [ 'elasticsearch' ]
+    secrets:
+      - source: kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+    networks:
+      - elasticstack
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - ./certificates:/usr/share/kibana/config/certificates/
+    healthcheck:
+      test: > 
+        curl --cacert /usr/share/kibana/config/certificates/ca/ca.crt
+        --max-time 120
+        --retry 120
+        --retry-delay 1
+        --show-error
+        --silent https://localhost:5601
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${VERSION}
+    user: root
+    depends_on: [ 'elasticsearch', 'kibana' ]
+    restart: on-failure
+    secrets:
+      - source: filebeat.yml
+        target: /usr/share/filebeat/filebeat.yml
+    networks:
+      - elasticstack
+      - application
+    environment:
+      - system.hostfs=/hostfs
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - es-logs:/usr/share/elasticsearch/logs
+      - ./certificates:/usr/share/filebeat/config/certificates/
+      # Mount the Docker logs inside the container.
+      - /var/lib/docker/containers:/hostfs/var/lib/docker/containers
+      # Connect to Docker on host, not in the container.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -e --strict.perms=false
+    healthcheck:
+      test: filebeat --strict.perms=false test config
+
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:${VERSION}
+    user: root
+    depends_on: [ 'elasticsearch', 'kibana' ]
+    restart: on-failure
+    secrets:
+      - source: heartbeat.yml
+        target: /usr/share/heartbeat/heartbeat.yml
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - elasticstack
+      - application
+    volumes:
+      - ./certificates:/usr/share/heartbeat/config/certificates/
+      # Connect to Docker on host, not in the container.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -e --strict.perms=false
+    healthcheck:
+      test: heartbeat --strict.perms=false test config
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:${VERSION}
+    user: root
+    depends_on: [ 'elasticsearch', 'kibana' ]
+    restart: on-failure
+    secrets:
+      - source: metricbeat.yml
+        target: /usr/share/metricbeat/metricbeat.yml
+    networks:
+      - elasticstack
+      - application
+    environment:
+      - system.hostfs=/hostfs
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - ./certificates:/usr/share/metricbeat/config/certificates/
+      # Monitor the Docker host rather than the Metricbeat container.
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      # Connect to Docker on host, not in the container.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -e --strict.perms=false
+    healthcheck:
+      test: metricbeat --strict.perms=false test config
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:${VERSION}
+    depends_on: [ 'elasticsearch', 'kibana' ]
+    restart: on-failure
+    secrets:
+      - source: apm-server.yml
+        target: /usr/share/apm-server/apm-server.yml
+    networks:
+      - elasticstack
+      - application
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - APM_SERVER_TOKEN=${APM_SERVER_TOKEN}
+    volumes:
+      - ./certificates:/usr/share/apm_server/config/certificates/
+    command: -e --strict.perms=false
+    healthcheck:
+      test: > 
+        curl --cacert /usr/share/apm_server/config/certificates/ca/ca.crt
+        --max-time 120
+        --retry 120
+        --retry-delay 1
+        --show-error
+        --silent https://localhost:8200

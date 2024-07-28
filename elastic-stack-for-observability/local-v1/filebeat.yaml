@@ -1,0 +1,58 @@
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      templates:
+        # Application/Script
+        - condition: { equals: { docker.container.labels.filebeat_enabled: "true" } }
+          config:
+            - type: container
+              paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log*"]
+              json:
+                add_error_key: true
+                keys_under_root: true
+                overwrite_keys: true
+                expand_keys: true
+        # Nginx
+        - condition: { contains: { docker.container.image: nginx }}
+          config:
+            - module: nginx
+              access: { input: { type: "container", stream: "stdout", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log*"] }}
+              error:  { input: { type: "container", stream: "stderr", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log*"]  }}
+        # Elasticsearch
+        - condition: { contains: { docker.container.image: elasticsearch }}
+          config:
+            - module: elasticsearch
+              audit:       { input: { type: "container", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log"] }}
+              deprecation: { input: { type: "container", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log"] }}
+              # gc:          { var: { paths: ["/usr/share/elasticsearch/logs/gc.log*"] }}
+              server:      { input: { type: "container", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log"] }}
+              slowlog:     { input: { type: "container", paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log"] }}
+        # Redis
+        - condition: { contains: { docker.container.image: redis }}
+          config:
+            - module: redis
+              log.var.paths: ["/hostfs/var/lib/docker/containers/${data.docker.container.id}/*-json.log"]
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata:
+      match_source_index: 5
+  - add_cloud_metadata: ~
+
+tags: ['service-A']
+
+output.elasticsearch:
+  hosts: ["https://demo-elasticsearch-1:9200"]
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/filebeat/config/certificates/ca/ca.crt"]
+
+setup:
+  kibana:
+    host: https://demo-kibana-1:5601
+    ssl.certificate_authorities: ["/usr/share/filebeat/config/certificates/ca/ca.crt"]
+  dashboards: { enabled: true,  retry: { enabled: true, interval: 10s }}
+
+monitoring:
+  enabled: true

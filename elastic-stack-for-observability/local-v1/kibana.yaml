@@ -1,0 +1,16 @@
+server.name: localhost
+server.host: 0.0.0.0
+server.ssl.enabled: true
+server.ssl.certificate: /usr/share/kibana/config/certificates/kibana/kibana.crt
+server.ssl.key: /usr/share/kibana/config/certificates/kibana/kibana.key
+
+elasticsearch.hosts: ["https://demo-elasticsearch-1:9200"]
+elasticsearch.username: kibana_system
+elasticsearch.password: "${ELASTIC_PASSWORD}"
+elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/config/certificates/ca/ca.crt"]
+
+xpack.monitoring.ui.container.elasticsearch.enabled: true
+
+xpack.fleet.packages:
+  - name: apm
+    version: latest

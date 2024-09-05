@@ -1,3 +1,5 @@
+# link: https://github.com/dbt-labs/dbt-core/blob/main/docker-compose.yml
+
 ##
 #  This compose file is used for local development and adapter testing only.
 #  See `/docker` for a generic and production-ready docker file
@@ -6,6 +8,7 @@
 version: "3"
 
 services:
+
   database:
     image: postgres
     environment:

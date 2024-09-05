@@ -4,6 +4,7 @@ A collection of [Docker](https://www.docker.com/)/[Podman](https://podman.io/)/[
 
 ## LIST OF TECHNOLOGIES
 
+- [**Airbyte**](https://airbyte.com/) is the only versatile data movement platform to enable data teams to scale efficiently with their ever-growing list of custom data sources.
 - [**Apache Airflow**](https://airflow.apache.org/) is a platform created by the community to programmatically author, schedule and monitor workflows.
 - [**Apache Amundsen**](https://www.amundsen.io/) is a data discovery and metadata engine for improving the productivity of data analysts, data scientists and engineers when interacting with data.
 - [**Apache Atlas**](https://atlas.apache.org/) is a scalable and extensible set of core foundational governance services – enabling enterprises to effectively and efficiently meet their compliance requirements within Hadoop and allows integration with the whole enterprise data ecosystem.
@@ -22,6 +23,7 @@ A collection of [Docker](https://www.docker.com/)/[Podman](https://podman.io/)/[
 - [**Apache Superset**](https://superset.apache.org/) is an open-source modern data exploration and visualization platform.
 - [**Apache Zeppelin**](https://zeppelin.apache.org/) is a web-based notebook that enables data-driven, interactive data analytics and collaborative documents with SQL, Scala, Python, R and more.
 - [**CockroachDB**](https://www.cockroachlabs.com/) is a cloud native, distributed SQL database designed for high availability, effortless scale, and control over data placement.
+- [**Data Build Tool (DBT)**](https://www.getdbt.com/) is an open-source command line tool that helps analysts and engineers transform data in their warehouse more effectively.
 - [**Databricks**](https://www.databricks.com/) is a global data, analytics and artificial intelligence company founded by the original creators of Apache Spark. The company provides a cloud-based platform to help enterprises build, scale, and govern data and AI, including generative AI and other machine learning models.
 - [**Delta-Lake**](https://delta.io/) is an open-source storage framework that enables building a format agnostic Lakehouse architecture with compute engines including Spark, PrestoDB, Flink, Trino, Hive, Snowflake, Google BigQuery, Athena, Redshift, Databricks, Azure Fabric and APIs for Scala, Java, Rust, and Python.
 - [**Elasticsearch**](https://www.elastic.co/products/elasticsearch) is a distributed, RESTful search and analytics engine capable of solving a growing number of use cases. As the heart of the Elastic Stack, it centrally stores your data so you can discover the expected and uncover the unexpected.
@@ -43,7 +45,7 @@ A collection of [Docker](https://www.docker.com/)/[Podman](https://podman.io/)/[
 - [**Python**](https://www.python.org/) is a programming language that lets you work quickly and integrate systems more effectively.
 - [**RabbitMQ**](https://www.rabbitmq.com/) is a reliable and mature messaging and streaming broker, which is easy to deploy on cloud environments, on-premises, and on your local machine. It is currently used by millions worldwide.
 - [**Redis**](https://redis.io/) is a source-available, in-memory storage, used as a distributed, in-memory key–value database, cache and message broker, with optional durability.
-- [**Rust](https://www.rust-lang.org/) is a multi-paradigm, general-purpose programming language that emphasizes performance, type safety, and concurrency. It enforces memory safety—meaning that all references point to valid memory—without a garbage collector.
+- [**Rust**](https://www.rust-lang.org/) is a multi-paradigm, general-purpose programming language that emphasizes performance, type safety, and concurrency. It enforces memory safety—meaning that all references point to valid memory—without a garbage collector.
 - [**Sonarqube**](https://github.com/SonarSource/docker-sonarqube) is an open source platform for continuous inspection of code quality.
 - [**Traefik API**](https://traefik.io/) is a cloud-native, GitOps-driven API runtime solutions for demanding DevOps and Platform Engineers with diverse use-cases, environments, and deployment models.
 

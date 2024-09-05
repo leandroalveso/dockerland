@@ -1,4 +1,6 @@
-##
+# link: https://github.com/dbt-labs/dbt-core/blob/main/docker-compose.yml
+
+## link: https://github.com/dbt-labs/dbt-core/blob/main/docker-compose.yml
 #  This dockerfile is used for local development and adapter testing only.
 #  See `/docker` for a generic and production-ready docker file
 ##

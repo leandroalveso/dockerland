@@ -1,0 +1,42 @@
+networks:
+  prometheus-grafana:
+
+volumes:
+  prometheus-data:
+
+configs:
+  prometheus-config:
+    file: ./prometheus.yaml
+
+services:
+
+  prometheus: # dockerhub: https://hub.docker.com/r/prom/prometheus
+    image: prom/prometheus:v2.53.1
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - prometheus-grafana
+    ports:
+      - 9090:9090
+    configs:
+      - source: prometheus-config
+        target: /etc/prometheus.yml
+        mode: 444
+    volumes:
+      - ./prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus.yml'
+  
+  grafana: # dockerhub: https://hub.docker.com/r/grafana/grafana
+    image: grafana/grafana:11.1.1
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin-12345
+      - GF_SECURITY_ADMIN_PASSWORD=secret-12345
+    networks:
+      - prometheus-grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources

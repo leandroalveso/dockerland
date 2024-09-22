@@ -1,0 +1,12 @@
+services:
+  keycloak:
+    build: .
+    container_name: local-keycloak
+    hostname: local-keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=changeme-12345
+    ports:
+      - 8080:8080
+    command: start-dev 
+    # command: start --optimized

@@ -1,0 +1,124 @@
+name: 'local-databricks'
+
+networks:
+  local-databricks:
+
+volumes:
+  object-storage:
+
+services:
+  
+  minio:
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z
+    environment:
+      MINIO_ROOT_USER: admin*12345
+      MINIO_ROOT_PASSWORD: psswrd*12345
+    networks:
+      - local-databricks
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.local-env/object-storage:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+  
+  node-master:
+    image: bitnami/spark:3.5.0
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+    networks:
+      - local-databricks
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./setup/computing/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+      - ./.local-env/jars:/opt/bitnami/spark/jars # https://repo1.maven.org/maven2/io/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  node-worker:
+    image: bitnami/spark:3.5.0
+    depends_on:
+      - node-master
+    deploy:
+      replicas: 2
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://node-master:7077
+      SPARK_WORKER_MEMORY: 4G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+    networks:
+      - local-databricks
+    volumes:
+      - ./setup/computing/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+      - ./.local-env/jars:/opt/bitnami/spark/jars
+  
+  jupyter:
+    build: 
+      context: .
+      dockerfile: ./setup/dockerfiles/jupyterlab.dockerfile
+    depends_on:
+      - node-master
+      - node-worker
+    environment:
+      JUPYTER_ENABLE_LAB: yes
+      SPARK_MASTER: spark://spark-master:7077
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    networks:
+      - local-databricks
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./workspace:/home/jovyan/work
+      - ./.local-env/data:/home/jovyan/data
+  
+  mlflow-db:
+    image: postgres:17.1
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow
+      POSTGRES_DB: mlflow
+    networks:
+      - local-databricks
+    volumes:
+      - ./.local-env/mlflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mlflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.20.1
+    depends_on:
+      mlflow-db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: admin*12345
+      AWS_SECRET_ACCESS_KEY: psswrd*12345
+      MLFLOW_TRACKING_URI: postgresql://mlflow:mlflow@mlflow-db:5432/mlflow
+    networks:
+      - local-databricks
+    ports:
+      - "5000:5000"
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://mlflow:mlflow@mlflow-db:5432/mlflow --default-artifact-root s3://mlflow/

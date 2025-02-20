@@ -1,0 +1,11 @@
+# workspace
+spark_init.py
+
+# mlflow
+mlruns/
+
+# jupyterlab
+.ipynb_checkpoints/
+
+# python-runtime
+__pycache__/

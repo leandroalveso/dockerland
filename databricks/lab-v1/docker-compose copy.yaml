@@ -1,0 +1,169 @@
+name: 'databricks'
+
+volumes:
+  object-storage:
+  mlops-data:
+
+services:
+
+  object-storage:
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_USERNAME}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.local/object-storage:/data
+    command: |
+      server --console-address ":9001" /data
+
+  node-master:
+    # image: bitnami/spark:${SPARK_VERSION} <- SPARK_VERSION=3.5.0
+    build:
+      context: .
+      dockerfile: ./dockerfiles/computing.Dockerfile
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+
+  node-worker:
+    image: bitnami/spark:${SPARK_VERSION}
+    build:
+      context: .
+      dockerfile: ./dockerfiles/computing.Dockerfile
+    depends_on:
+      - node-master
+    deploy:
+      replicas: 2
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://node-master:7077
+      SPARK_WORKER_MEMORY: 2G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+    volumes:
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+
+  jupyterlab:
+    #image: jupyter/pyspark-notebook:spark-${SPARK_VERSION} <- SPARK_VERSION=3.5.0
+    build:
+      context: .
+      dockerfile: ./dockerfiles/workspace.Dockerfile
+    depends_on:
+      - node-master
+      - node-worker
+    environment:
+      JUPYTER_ENABLE_LAB: yes
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./workspace/:/home/jovyan/workspace
+      # - ./config/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
+      # - ./config/spark_init.py:/home/jovyan/workspace/spark_init.py
+
+  # mlops-db:
+  #   image: postgres:17.0
+  #   environment:
+  #     POSTGRES_USER: ${MLOPS_DB_USERNAME}
+  #     POSTGRES_PASSWORD: ${MLOPS_DB_PASSWORD} m
+  #     POSTGRES_DB: ${MLOPS_DB_DATABASE} mlflow mlflow
+  #   volumes:
+  #     - ./.local/mlops-data:/var/lib/postgresql/data
+  
+  # mlops:
+  #   build:
+  #     context: .
+  #     dockerfile: ./dockerfiles/mlops.Dockerfile
+  #   depends_on:
+  #     - object-storage
+  #     - mlops-db
+  #   environment:
+  #     MLFLOW_S3_ENDPOINT_URL: http://object-storage:9000
+  #     AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_USERNAME}
+  #     AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_PASSWORD}
+  #   ports:
+  #     - "5000:5000"
+  #   command: | 
+  #     mlflow server 
+  #       --host 0.0.0.0 
+  #       --backend-store-uri postgresql://mlflow:mlflow@mlops-db/mlflow 
+  #       --default-artifact-root s3://mlflow/
+  
+
+
+
+
+
+
+
+
+  # node-master:
+  #   image: computing:3.5.0
+  #   build:
+  #     context: .
+  #     dockerfile: ./dockerfiles/computing.Dockerfile
+  #   environment:
+  #     - SPARK_MODE=master
+  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+  #     - SPARK_SSL_ENABLED=no
+  #   ports:
+  #     - "8080:8080"
+  #     - "7077:7077"
+  #   volumes:
+  #     - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+  #     - ./.local/jars:/opt/bitnami/spark/jars
+
+  # node-worker:
+  #   image: computing:3.5.0
+  #   build:
+  #     context: .
+  #     dockerfile: ./dockerfiles/computing.Dockerfile
+  #   depends_on:
+  #     - node-master
+  #   deploy:
+  #     replicas: 2
+  #   environment:
+  #     - SPARK_MODE=worker
+  #     - SPARK_MASTER_URL=spark://node-master:7077
+  #     - SPARK_WORKER_MEMORY=2G
+  #     - SPARK_WORKER_CORES=2
+  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+  #     - SPARK_SSL_ENABLED=no
+  #   volumes:
+  #     - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+  #     - ./.local/jars:/opt/bitnami/spark/jars
+
+  # jupyterlab:
+  #   build:
+  #     context: .
+  #     dockerfile: ./dockerfiles/workspace.Dockerfile
+  #   depends_on:
+  #     - node-master
+  #     - object-storage
+  #     - mlflow
+  #   environment:
+  #     - JUPYTER_ENABLE_LAB=yes
+  #   ports:
+  #     - "8888:8888"
+  #   volumes:
+  #     - ./.local/lake:/home/jovyan/work
+  #     - ./.local/mlops-data:/mlops-data
+  #     - ./config/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
+  #     - ./workspace/notebooks:/home/jovyan/work

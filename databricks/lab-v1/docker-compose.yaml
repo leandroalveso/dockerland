@@ -1,0 +1,82 @@
+# docker-compose.yml
+version: '3.8'
+
+name: 'databricks'
+
+volumes:
+  object-storage:
+  mlops-data:
+
+services:
+  object-storage:
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.local/object-storage:/data
+    command: server --console-address ":9001" /data
+
+  node-master:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/computing.Dockerfile
+      args:
+        SPARK_VERSION: ${SPARK_VERSION}
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+
+  node-worker:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/computing.Dockerfile
+      args:
+        SPARK_VERSION: ${SPARK_VERSION}
+    depends_on:
+      - node-master
+    deploy:
+      replicas: 2
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://node-master:7077
+      SPARK_WORKER_MEMORY: 2G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+    volumes:
+      - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/workspace.Dockerfile
+      args:
+        SPARK_VERSION: ${SPARK_VERSION}
+    depends_on:
+      - node-master
+      - node-worker
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./workspace/:/home/jovyan/workspace
+      - ./config/jupyter_notebook_config.py:/etc/jupyter/jupyter_notebook_config.py
+      - ./config/spark_init.py:/home/jovyan/workspace/spark_init.py
+      - ./dockerfiles/requirements.txt:/home/jovyan/requirements.txt

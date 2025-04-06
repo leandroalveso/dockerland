@@ -1,0 +1,12 @@
+delta-spark==3.3.0
+pyarrow
+polars
+pandera[polars]
+scikit-learn
+tensorflow
+mlflow
+ipython-sql
+boto3
+s3fs
+minio
+findspark

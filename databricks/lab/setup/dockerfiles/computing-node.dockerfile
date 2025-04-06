@@ -1,6 +1,8 @@
 # Layer: Base Image
 
-FROM bitnami/spark:3.5.0 AS base-node
+ARG SPARK_VERSION=3.5.0
+
+FROM bitnami/spark:${SPARK_VERSION} AS base-node
 
 # Layer: Final Images
 

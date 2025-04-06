@@ -1,4 +1,6 @@
-FROM jupyter/pyspark-notebook:spark-3.5.0
+ARG SPARK_VERSION=3.5.0
+
+FROM jupyter/pyspark-notebook:spark-${SPARK_VERSION}
 
 USER root
 
